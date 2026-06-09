@@ -172,7 +172,7 @@ body{background:#fff;padding:0;}
           <div class="fg"><label class="lbl">Dernier jour non travaille</label><div id="cpFWrap"><input class="inp" type="date" id="cpF" onchange="calcJ()" autocomplete="off"></div></div>
         </div>
         <div class="jr"><div class="jrn" id="jrN">-</div><div class="jrd"><strong>jours ouvres decomptes</strong><br><span id="jrD" style="font-size:10px;color:#999"></span></div></div>
-        <div class="rappel">Rappel : Le conge principal doit etre pris du 1er mai au 31 octobre.</div>
+        <div class="rappel">Le congé principal (20 jours ouvrés) doit impérativement être pris dans la période du 1er mai au 31 octobre. &laquo;&nbsp;Si pour des raisons personnelles et avec l'accord de l'entreprise, je prends moins de jours dans la période mentionnée ci-dessus, je renonce à bénéficier des jours de fractionnement&nbsp;&raquo;</div>
       </div>
     </div>
     <div class="sec" id="secABS">
@@ -518,7 +518,7 @@ function buildDir(data){
     cpHtml="<div class=\"sec on\"><div class=\"sec-hdr\" style=\"pointer-events:none\"><div class=\"ck on\"></div><span class=\"sec-ttl\">Solicite un conge paye</span></div><div class=\"sec-body open\"><div class=\"dg\">";
     cpHtml+="<div class=\"fg\"><label class=\"lbl\">Premier jour</label><div style=\"font-size:13px;font-weight:600;padding:5px 2px;border-bottom:1.5px solid var(--bd)\">"+cD+"</div></div><div class=\"fg\"><label class=\"lbl\">Dernier jour</label><div style=\"font-size:13px;font-weight:600;padding:5px 2px;border-bottom:1.5px solid var(--bd)\">"+cF+"</div></div></div><div class=\"jr\"><div class=\"jrn\">"+cN+"</div><div class=\"jrd\"><strong>jours ouvres</strong>";
     if(cDet)cpHtml+="<br><span style=\"font-size:10px;color:#999\">"+cDet+"</span>";
-    cpHtml+="</div></div><div class=\"rappel\">Conge principal : 1er mai au 31 octobre.</div></div></div>";
+    cpHtml+="</div></div><div class=\"rappel\">Le congé principal (20 jours ouvrés) doit impérativement être pris dans la période du 1er mai au 31 octobre. &laquo;&nbsp;Si pour des raisons personnelles et avec l\'accord de l\'entreprise, je prends moins de jours dans la période mentionnée ci-dessus, je renonce à bénéficier des jours de fractionnement&nbsp;&raquo;</div></div></div>";
   }
   var absHtml="";
   if(absOn&&data.abs){
