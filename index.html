@@ -275,7 +275,11 @@ function countJ(s,f){
   while(ws<=F){
     var r=0,rf=0,r5=0;
     for(var d=0;d<6;d++){var c=new Date(ws);c.setDate(ws.getDate()+d);if(c>=S&&c<=F){var k=c.getFullYear()*10000+(c.getMonth()+1)*100+c.getDate();r++;if(d<5)r5++;if(fy.has(k))rf++;}}
-    if(r===6)cp+=Math.max(0,5-rf);else cp+=Math.max(0,r5-rf);fe+=rf;
+    if(r===6){
+      var rfLV=0;
+      for(var d2=0;d2<5;d2++){var c2=new Date(ws);c2.setDate(ws.getDate()+d2);var k2=c2.getFullYear()*10000+(c2.getMonth()+1)*100+c2.getDate();if(fy.has(k2))rfLV++;}
+      cp+=Math.max(0,5-rfLV);fe+=rfLV;
+    }else{var adj=(r>=5?1:0);cp+=Math.max(0,r-rf-adj);fe+=rf;}
     ws.setDate(ws.getDate()+7);
   }
   return{c:cp,fe:fe};
