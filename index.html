@@ -157,6 +157,17 @@ body{background:#fff;padding:0;}
         <option>Marais</option><option>Mudo</option><option>Niorto</option>
       </select>
     </div>
+    <!-- Annule et remplace -->
+    <div id="arBlk" style="margin-bottom:10px;padding:8px 12px;background:#FEF9EC;border:1.5px solid var(--g);border-radius:6px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" id="chkAR" onchange="toggleAR()" style="accent-color:var(--g);width:14px;height:14px">
+        Annule et remplace
+      </label>
+      <div id="arDateBox" style="display:none;flex:1;min-width:160px">
+        <label class="lbl" style="font-size:9px">Date de la demande initiale</label>
+        <input class="inp" type="date" id="arDate" style="font-size:12px">
+      </div>
+    </div>
     <div class="r2" id="idBlk">
       <div class="fg"><label class="lbl">Nom</label><input class="inp" type="text" id="nom" placeholder="Nom de famille" autocomplete="off"></div>
       <div class="fg"><label class="lbl">Prenom</label><input class="inp" type="text" id="prenom" placeholder="Prenom" autocomplete="off"></div>
@@ -252,6 +263,16 @@ body{background:#fff;padding:0;}
 function ge(i){return document.getElementById(i)}
 function gv(i){var e=ge(i);return e?e.value:''}
 function fD(iso){if(!iso)return'-';var p=iso.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:iso}
+function subjInfo(d){
+  if(!d)return'';
+  var parts=[];
+  if(d.cp&&d.cp.on&&d.cp.d){parts.push('CP '+fD(d.cp.d)+(d.cp.f&&d.cp.f!==d.cp.d?'-'+fD(d.cp.f):''));}
+  if(d.abs&&d.abs.on&&d.abs.d){
+    var m=(d.abs.mL||'Absence').replace(/^[^\w]*/,'').trim();
+    parts.push(m+' '+fD(d.abs.d)+(d.abs.f&&d.abs.f!==d.abs.d?'-'+fD(d.abs.f):''));
+  }
+  return parts.length?' - '+parts.join(' + '):'';
+}
 function fNow(){var d=new Date();return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'})+' a '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}
 function toast(m,ms){var t=ge('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},ms||3500)}
 function spin(m){ge('spmsg').textContent=m||'...';ge('sp').classList.add('show')}
@@ -500,6 +521,7 @@ function collect(){
   return{
     societe:gv('societe'),ville:getCity(gv('societe')),
     nom:gv('nom'),prenom:gv('prenom'),
+    annuleRemplace:getARData(),
     date:ge('today').textContent,tsC:_tsC,
     cp:{on:isSec('CP'),d:gv('cpD'),f:gv('cpF'),n:ge('jrN').textContent,det:ge('jrD').textContent},
     abs:{on:isSec('ABS'),m:me?me.value:'',mL:me?me.closest('.mc').querySelector('label').textContent.trim():'',
@@ -546,7 +568,7 @@ function buildDir(data){
     agUrl="https://outlook.office.com/calendar/action/compose?rru=addevent&startdt="+encodeURIComponent(dD+"T00:00:00")+"&enddt="+encodeURIComponent(dFx+"T00:00:00")+"&subject="+encodeURIComponent(sj)+"&allday=true";
     agH="<div style=\"margin-top:10px;padding:9px 12px;background:var(--gp);border:1.5px solid var(--g);border-radius:6px\"><div style=\"font-size:10px;font-weight:700;text-transform:uppercase;color:var(--g);margin-bottom:6px\">Agenda Outlook</div><a href=\""+agUrl+"\" target=\"_blank\" style=\"display:inline-flex;align-items:center;padding:7px 14px;background:#1A1A1A;color:#fff;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none\">Ouvrir dans Outlook</a></div>";
   }
-  var dJ=JSON.stringify({societe:data.societe,nom:data.nom,prenom:data.prenom,date:data.date,tsC:data.tsC,cp:data.cp,abs:data.abs,ville:city,agUrl:agUrl,rhMail:getRhMail(data.societe)});
+  var dJ=JSON.stringify({societe:data.societe,nom:data.nom,prenom:data.prenom,date:data.date,tsC:data.tsC,cp:data.cp,abs:data.abs,ville:city,agUrl:agUrl,rhMail:getRhMail(data.societe),annuleRemplace:data.annuleRemplace||null});
   var spCode="\n(function(W){\nfunction SP(c,o){\n  this.c=c;this.o=o||{};this._dr=false;this._empty=true;\n  this._cb=this.o.onBegin||function(){};this._init();\n}\nSP.prototype._init=function(){\n  var S=this,c=this.c,dpr=W.devicePixelRatio||1;\n  var pw=c.parentElement?c.parentElement.offsetWidth:c.offsetWidth||300;\n  var ph=parseInt(c.style.height)||110;\n  c.width=pw*dpr;c.height=ph*dpr;\n  c.style.width=pw+'px';c.style.height=ph+'px';\n  var ctx=c.getContext('2d');\n  ctx.scale(dpr,dpr);\n  ctx.fillStyle='#fff';ctx.fillRect(0,0,pw,ph);\n  ctx.strokeStyle=S.o.penColor||'#1A1A1A';\n  ctx.lineWidth=S.o.lineWidth||2.5;\n  ctx.lineCap='round';ctx.lineJoin='round';\n  S._ctx=ctx;\n  c.style.touchAction='none';\n  c.setAttribute('touch-action','none');\n  function xy(e){\n    var r=c.getBoundingClientRect();\n    var s=e.changedTouches?e.changedTouches[0]:e.touches?e.touches[0]:e;\n    return[s.clientX-r.left,s.clientY-r.top];\n  }\n  function dn(e){\n    try{e.preventDefault();}catch(x){}try{e.stopPropagation();}catch(x){}\n    S._dr=true;\n    if(S._empty){S._empty=false;S._cb();}\n    var p=xy(e);ctx.beginPath();ctx.moveTo(p[0],p[1]);\n  }\n  function mv(e){\n    try{e.preventDefault();}catch(x){}try{e.stopPropagation();}catch(x){}\n    if(!S._dr)return;\n    var p=xy(e);ctx.lineTo(p[0],p[1]);ctx.stroke();\n    ctx.beginPath();ctx.moveTo(p[0],p[1]);\n  }\n  function up(e){try{e.preventDefault();}catch(x){}S._dr=false;}\n  document.addEventListener('touchmove',function(e){if(S._dr)try{e.preventDefault();}catch(x){}},{passive:false});\n  if(W.PointerEvent){\n    c.addEventListener('pointerdown',function(e){try{c.setPointerCapture(e.pointerId);}catch(x){}dn(e);},{passive:false,capture:true});\n    c.addEventListener('pointermove',mv,{passive:false,capture:true});\n    c.addEventListener('pointerup',up,{passive:false});\n    c.addEventListener('pointercancel',up,{passive:false});\n  }\n  c.addEventListener('touchstart',dn,{passive:false,capture:true});\n  c.addEventListener('touchmove',mv,{passive:false,capture:true});\n  c.addEventListener('touchend',up,{passive:false,capture:true});\n  c.addEventListener('touchcancel',up,{passive:false});\n  c.addEventListener('mousedown',dn,false);\n  c.addEventListener('mousemove',mv,false);\n  c.addEventListener('mouseup',up,false);\n  c.addEventListener('mouseleave',up,false);\n};\nSP.prototype.clear=function(){\n  var c=this.c,dpr=W.devicePixelRatio||1;\n  this._ctx.clearRect(0,0,c.width/dpr,c.height/dpr);\n  this._empty=true;\n};\nSP.prototype.isEmpty=function(){return this._empty;};\nSP.prototype.toDataURL=function(){\n  var c=this.c,t=document.createElement('canvas');\n  t.width=c.width;t.height=c.height;\n  var x=t.getContext('2d');\n  x.fillStyle='#fff';x.fillRect(0,0,t.width,t.height);\n  x.drawImage(c,0,0);\n  return t.toDataURL('image/jpeg',0.85);\n};\nW.SigPad=SP;\n})(window);\n";
   var dirJs="var D="+dJ+";"+"var _tsR=\"\";var _sp=null;"+"function ge(i){return document.getElementById(i)}"+"function gv(i){var e=ge(i);return e?e.value:\"\"}"+"function fNow(){var d=new Date(),a=d.toLocaleDateString(\"fr-FR\",{day:\"2-digit\",month:\"2-digit\",year:\"numeric\"}),b=d.toLocaleTimeString(\"fr-FR\",{hour:\"2-digit\",minute:\"2-digit\"});return a+\" a \"+b}"+"function toast(m,ms){var t=ge(\"toast\");if(!t)return;t.textContent=m;t.classList.add(\"show\");setTimeout(function(){t.classList.remove(\"show\")},ms||3500)}"+"function spin(){var e=ge(\"sp\");if(e)e.classList.add(\"show\")}"+"function unspin(){var e=ge(\"sp\");if(e)e.classList.remove(\"show\")}"+"function clrSig(){if(_sp)_sp.clear();_tsR=\"\";var el=ge(\"tsR\");if(el)el.textContent=\"\"}"+"function initSig(){var c=ge(\"cvR\");if(!c||!window.SigPad){setTimeout(initSig,100);return}var pw=c.parentElement?c.parentElement.offsetWidth:0;if(pw<10){setTimeout(initSig,100);return}_sp=new SigPad(c,{penColor:\"#1A1A1A\",lineWidth:2.5,onBegin:function(){if(!_tsR){_tsR=fNow();var el=ge(\"tsR\");if(el)el.textContent=\"Signe le \"+_tsR}}})}"+"async function exportPDF(){var ov=document.querySelectorAll('[style*=\"position:fixed\"],[style*=\"border-radius:16px 16px 0 0\"]');var hid=[];ov.forEach(function(e){if(e.style.display!==\"none\"){hid.push({e:e,d:e.style.display});e.style.display=\"none\";}});spin();try{var cv=await html2canvas(ge(\"wrap\"),{scale:1.5,useCORS:true,logging:false,windowWidth:780});var img=cv.toDataURL(\"image/jpeg\",.88);var P=window.jspdf.jsPDF;var margin=6,pageW=210,pageH=297,maxW=pageW-2*margin,maxH=pageH-2*margin;var imgW=maxW,imgH=cv.height*imgW/cv.width;if(imgH>maxH){imgH=maxH;imgW=cv.width*imgH/cv.height;}var x=(pageW-imgW)/2,y=(pageH-imgH)/2;var pdf=new P({orientation:\"portrait\",unit:\"mm\",format:\"a4\"});pdf.addImage(img,\"JPEG\",x,y,imgW,imgH);pdf.save(\"Demande_\"+D.prenom+\"_\"+D.nom+\"_SIGNE.pdf\");}catch(e){}}hid.forEach(function(o){o.e.style.display=o.d;});unspin()}"+"async function sendRH(){var dn=gv(\"dirNom\"),dp=gv(\"dirPrenom\"),sig=(dp&&dn)?dp+\" \"+dn:\"\";await exportPDF();var body=\"Bonjour,\\n\\nVeuillez trouver en piece jointe la demande signee de \"+D.prenom+\" \"+D.nom+\" (\"+D.societe+\").\\n\\nCordialement,\"+(sig?\"\\n\"+sig:\"\");var rM_=D.rhMail||\\\"ressources-humaines@groupe-edgard.com\\\";var rCc_=rM_!==\\\"ressources-humaines@groupe-edgard.com\\\"?\\\"&cc=\\\"+encodeURIComponent(rM_):\\\"\\\";window.location.href=\\\"mailto:ressources-humaines@groupe-edgard.com\\\"+rCc_+\\\"?subject=\\\"+encodeURIComponent(\\\"[RH][\\\"+D.societe+\\\"] Demande \\\"+D.prenom+\\\" \\\"+D.nom)+\\\"&body=\\\"+encodeURIComponent(body);}"+"document.addEventListener(\"DOMContentLoaded\",initSig);window.addEventListener(\"load\",initSig);";
   var H="<!DOCTYPE html><html lang=\"fr\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">";
@@ -637,7 +659,7 @@ function _ouvrirMailDir(data,dirUrl){
   var body='Bonjour,\n\nMerci de signer la demande de '+data.prenom+' '+data.nom+' ('+data.societe+').';
   if(recap)body+='\n\nRecapitulatif :'+recap;
   body+='\n\nLien pour signer (cliquez pour ouvrir) :\n\n'+dirUrl+'\n\nCordialement,\n'+data.prenom+' '+data.nom;
-  window.location.href='mailto:?subject='+encodeURIComponent('['+data.societe+'] A signer - '+data.prenom+' '+data.nom)+'&body='+encodeURIComponent(body);
+  window.location.href='mailto:?subject='+encodeURIComponent('['+data.societe+'] A signer - '+data.prenom+' '+data.nom+subjInfo(data))+'&body='+encodeURIComponent(body);
   toast('Mail ouvert — lien inclus',4000);
 }
 function openMailDir(){_ouvrirMailDir(_md||{},'');}
@@ -716,7 +738,7 @@ async function doSendRH(){
   var rhMail=getRhMail(d.societe);
   // Format mailto correct : mailto:to?cc=...&subject=...&body=...
   var ccPart=rhMail!=='ressources-humaines@groupe-edgard.com'?'cc='+encodeURIComponent(rhMail)+'&':'';
-  var subj=encodeURIComponent('[RH]['+d.societe+'] Demande - '+d.prenom+' '+d.nom);
+  var subj=encodeURIComponent('[RH]['+d.societe+'] Demande - '+d.prenom+' '+d.nom+subjInfo(d));
   var body='Bonjour,\n\nVeuillez trouver ci-dessous le lien pour telecharger la demande signee de '+d.prenom+' '+d.nom+' ('+d.societe+').\n\nCordialement,'+(sig?'\n'+sig:'');
   if(_isIOS){
     spin('Generation du lien...');
@@ -727,7 +749,8 @@ async function doSendRH(){
       cp:d.cp,abs:d.abs,
       sigStrokes:d.sigStrokes||null,
       sigRStrokes:getSigRStrokes()||null,
-      dirNom:dn,dirPrenom:dp,tsR:_tsR,dec:dec,refM:gv('refM')
+      dirNom:dn,dirPrenom:dp,tsR:_tsR,dec:dec,refM:gv('refM'),
+      annuleRemplace:d.annuleRemplace||null
     };
     var base=(window.location.protocol==='https:')?window.location.href.split('?')[0].split('#')[0]:'https://edgard-opticiens.github.io/congespayes';
     var encoded=encodeURIComponent(JSON.stringify(rhData));
@@ -762,7 +785,8 @@ async function doSendRH(){
     cp:d.cp,abs:d.abs,
     sigStrokes:d.sigStrokes||null,
     sigRStrokes:getSigRStrokes()||null,
-    dirNom:dn,dirPrenom:dp,tsR:_tsR,dec:dec,refM:gv('refM')
+    dirNom:dn,dirPrenom:dp,tsR:_tsR,dec:dec,refM:gv('refM'),
+    annuleRemplace:d.annuleRemplace||null
   };
   var basePC=(window.location.protocol==='https:')?window.location.href.split('?')[0].split('#')[0]:'https://edgard-opticiens.github.io/congespayes';
   var longUrlPC=basePC+'?r='+encodeURIComponent(JSON.stringify(rhDataPC));
@@ -801,7 +825,7 @@ function openMailRH(){
   var body='Bonjour,\n\nVeuillez trouver en piece jointe la demande signee de '+d.prenom+' '+d.nom+' ('+d.societe+').\n\nCordialement,'+(sig?'\n'+sig:'');
   var rhMail=getRhMail(d.societe);
   var rhCc=rhMail!=='ressources-humaines@groupe-edgard.com'?'&cc='+encodeURIComponent(rhMail):'';
-  window.location.href='mailto:ressources-humaines@groupe-edgard.com'+rhCc+'?subject='+encodeURIComponent('[RH]['+d.societe+'] Demande de conges - '+d.prenom+' '+d.nom)+'&body='+encodeURIComponent(body);
+  window.location.href='mailto:ressources-humaines@groupe-edgard.com'+rhCc+'?subject='+encodeURIComponent('[RH]['+d.societe+'] Demande de conges - '+d.prenom+' '+d.nom+subjInfo(d))+'&body='+encodeURIComponent(body);
   setTimeout(function(){closeM('mdlRH');},600);
 }
 function nextDay(iso){var d=new Date(iso+'T00:00:00');d.setDate(d.getDate()+1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -847,9 +871,18 @@ function addOutlook(){
   setTimeout(function(){URL.revokeObjectURL(url);},3000);
   toast('Fichier calendrier telecharge — ouvrez-le pour ajouter a votre agenda',5000);
 }
+function toggleAR(){
+  var cb=ge('chkAR');var box=ge('arDateBox');
+  if(box)box.style.display=(cb&&cb.checked)?'block':'none';
+}
+function getARData(){
+  var cb=ge('chkAR');if(!cb||!cb.checked)return null;
+  return{on:true,dateInit:gv('arDate')};
+}
 function resetForm(){
   if(!confirm('Reinitialiser ?'))return;
-  ['nom','prenom','cpD','cpF','absD','absF','absH','absJ','evtM','refM'].forEach(function(id){var el=ge(id);if(el)el.value=''});
+  ['nom','prenom','cpD','cpF','absD','absF','absH','absJ','evtM','refM','arDate'].forEach(function(id){var el=ge(id);if(el)el.value=''});
+  if(ge('chkAR')){ge('chkAR').checked=false;toggleAR();}
   ge('societe').selectedIndex=0;updSoc();
   document.querySelectorAll('input[type="radio"]').forEach(function(r){r.checked=false});
   ge('jrN').textContent='-';ge('jrD').textContent='';
@@ -878,6 +911,10 @@ document.addEventListener('DOMContentLoaded',function(){
     ge('btnDir').style.display='none';ge('btnRH').style.display='none';ge('btnPDF').style.display='none';
     var sh=ge('shield');if(sh)sh.style.display='none';
     var db=ge('dirBlk');if(db){db.classList.remove('locked');db.style.pointerEvents='none';}
+    if(_rh.annuleRemplace){
+      var chkARr=ge('chkAR');if(chkARr){chkARr.checked=true;toggleAR();}
+      if(_rh.annuleRemplace.dateInit&&ge('arDate')){ge('arDate').value=_rh.annuleRemplace.dateInit;}
+    }
     if(_rh.societe){ge('sdis').textContent=_rh.societe;ge('societe').value=_rh.societe;}
     if(_rh.nom)ge('nom').value=_rh.nom;
     if(_rh.prenom)ge('prenom').value=_rh.prenom;
@@ -951,6 +988,10 @@ document.addEventListener('DOMContentLoaded',function(){
     var sh=ge('shield');if(sh)sh.style.display='none';
     var db=ge('dirBlk');if(db){db.classList.remove('locked');db.style.pointerEvents='auto';}
     // Remplir les données collaborateur
+    if(_md.annuleRemplace){
+      var chkARd=ge('chkAR');if(chkARd){chkARd.checked=true;toggleAR();}
+      if(_md.annuleRemplace.dateInit&&ge('arDate')){ge('arDate').value=_md.annuleRemplace.dateInit;}
+    }
     if(_md.societe){ge('sdis').textContent=_md.societe;ge('societe').value=_md.societe;}
     if(_md.nom)ge('nom').value=_md.nom;
     if(_md.prenom)ge('prenom').value=_md.prenom;
