@@ -290,7 +290,7 @@ function logRHValide(){
     type:(_rh.cp&&_rh.cp.on?'CP':'')+(_rh.abs&&_rh.abs.on?(_rh.cp&&_rh.cp.on?'+':'')+'ABS':''),
     date_debut:(_rh.cp&&_rh.cp.d)||(_rh.abs&&_rh.abs.d)||'',
     date_fin:(_rh.cp&&_rh.cp.f)||(_rh.abs&&_rh.abs.f)||'',
-    etape:'termine',statut:'valide',
+    etape:'termine',statut:'telecharge',
     en_attente_nom:'',en_attente_email:'',lien:''
   });
 }
@@ -536,7 +536,7 @@ function drawStrokes(canvas,strokes){
 }
 
 /* Collecte */
-var _md=null,_dlN='',_rhN='',_rh=null;
+var _md=null,_dlN='',_rhN='';
 function collect(){
   var me=document.querySelector('input[name="motif"]:checked');
   return{
@@ -802,7 +802,7 @@ async function doSendRH(){
       logToSheet({id:makeId(d),societe:d.societe,nom:d.nom,prenom:d.prenom,
         type:(d.cp&&d.cp.on?'CP':'')+(d.abs&&d.abs.on?(d.cp&&d.cp.on?'+':'')+'ABS':''),
         date_debut:(d.cp&&d.cp.d)||(d.abs&&d.abs.d)||'',date_fin:(d.cp&&d.cp.f)||(d.abs&&d.abs.f)||'',
-        etape:'rh',statut:'en_attente',en_attente_nom:'RH',en_attente_email:'ressources-humaines@groupe-edgard.com',lien:rhUrl});
+        etape:'rh',statut:'attente_telechargement',en_attente_nom:'RH',en_attente_email:'ressources-humaines@groupe-edgard.com',lien:rhUrl});
     });
     return;
   }
@@ -848,7 +848,7 @@ async function doSendRH(){
             logToSheet({id:makeId(d),societe:d.societe,nom:d.nom,prenom:d.prenom,
         type:(d.cp&&d.cp.on?'CP':'')+(d.abs&&d.abs.on?(d.cp&&d.cp.on?'+':'')+'ABS':''),
         date_debut:(d.cp&&d.cp.d)||(d.abs&&d.abs.d)||'',date_fin:(d.cp&&d.cp.f)||(d.abs&&d.abs.f)||'',
-        etape:'rh',statut:'en_attente',en_attente_nom:'RH',en_attente_email:'ressources-humaines@groupe-edgard.com',lien:rhUrl});
+        etape:'rh',statut:'attente_telechargement',en_attente_nom:'RH',en_attente_email:'ressources-humaines@groupe-edgard.com',lien:rhUrl});
       setTimeout(function(){window.location.href='mailto:ressources-humaines@groupe-edgard.com?'+ccPart+'subject='+subj+'&body='+encodeURIComponent(bodyPC);},600);
     });
   });
@@ -930,6 +930,7 @@ document.addEventListener('DOMContentLoaded',function(){
   ge('today').textContent=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
   // Lire ?d= (directeur) ou ?r= (RH) dans l'URL
   var search=window.location.search;
+  var _rh=null;
   if(search){
     var m=search.match(/[?&]d=([^&]*)/);
     if(m){var decoded=decodeHash(m[1]);if(decoded&&decoded.nom)_md=decoded;}
