@@ -93,6 +93,7 @@ body{background:#fff;padding:0;}
 #wrap{box-shadow:none;border-radius:0;max-width:100%}
 .sec-body{display:block!important}
 .shield{display:none!important}
+#rhAdjBox,#rhAdjBoxAbs{display:none!important}
 #sigCArea,#sigRArea{background:#fff!important;min-height:90px;}
 #sigCArea svg,#sigRArea svg{background:#fff!important;}
 #sigCArea svg rect,#sigRArea svg rect{fill:#fff!important;}
@@ -133,7 +134,7 @@ body{background:#fff;padding:0;}
   <span id="bannerMsg">Remplissez votre demande, signez, puis cliquez sur <strong>Envoyer au directeur</strong></span>
 </div>
 
-<div class="tb">
+<div class="tb" id="btnZone">
   <button class="btn bol" onclick="resetForm()">Reinitialiser</button>
   <button class="btn bdk" id="btnPDF" onclick="exportPDF()">PDF</button>
   <button class="btn bgr" id="btnRH" style="display:none" onclick="doSendRH()">Envoyer aux RH</button>
@@ -182,8 +183,17 @@ body{background:#fff;padding:0;}
           <div class="fg"><label class="lbl">Premier jour non travaille</label><div id="cpDWrap"><input class="inp" type="date" id="cpD" onchange="calcJ()" autocomplete="off"></div></div>
           <div class="fg"><label class="lbl">Dernier jour non travaille</label><div id="cpFWrap"><input class="inp" type="date" id="cpF" onchange="calcJ()" autocomplete="off"></div></div>
         </div>
-        <div class="jr"><div class="jrn" id="jrN">-</div><div class="jrd"><strong>jours ouvres decomptes</strong><br><span id="jrD" style="font-size:10px;color:#999"></span></div></div>
+        <div class="jr" id="jrBlk"><div class="jrn" id="jrN">-</div><div class="jrd"><strong>jours ouvres decomptes</strong><br><span id="jrD" style="font-size:10px;color:#999"></span></div></div>
         <div class="rappel">Le congé principal (20 jours ouvrés) doit impérativement être pris dans la période du 1er mai au 31 octobre. &laquo;&nbsp;Si pour des raisons personnelles et avec l'accord de l'entreprise, je prends moins de jours dans la période mentionnée ci-dessus, je renonce à bénéficier des jours de fractionnement&nbsp;&raquo;</div>
+        <div style="margin-top:8px;padding:8px 10px;background:#FFF3CD;border:1.5px solid var(--g);border-radius:5px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600;color:#856404;cursor:pointer">
+            <input type="checkbox" id="cpSignal" onchange="toggleCpSignal()" style="width:15px;height:15px;accent-color:var(--g);flex-shrink:0">
+            ⚠️ Le nombre de jours calculé me semble incorrect
+          </label>
+          <div id="cpSignalNoteWrap" style="display:none;margin-top:6px">
+            <textarea class="inp" id="cpSignalNote" rows="2" placeholder="Precisez si besoin (ex: jour ferie non pris en compte...)" style="border:1.5px solid var(--g);border-radius:4px"></textarea>
+          </div>
+        </div>
       </div>
     </div>
     <div class="sec" id="secABS">
@@ -347,6 +357,44 @@ function openSec(id){ge('sec'+id).classList.add('on');ge('body'+id).classList.ad
 function closeSec(id){ge('sec'+id).classList.remove('on');ge('body'+id).classList.remove('open');ge('ck'+id).classList.remove('on')}
 function isSec(id){return ge('body'+id).classList.contains('open')}
 function showEvt(v){ge('evtDet').classList.toggle('show',v)}
+function setRH(id,val){
+  var el=ge(id);if(!el)return;
+  el.removeAttribute('readonly');el.style.pointerEvents='auto';
+  if(el.type==='date'||el.getAttribute('data-orig-type')==='date'){el.type='text';}
+  el.value=val;
+}
+function applyRHAdj(){
+  var cpD=gv('rhCpD'),cpF=gv('rhCpF'),cpN=gv('rhCpN').trim();
+  if(cpD)setRH('cpD',fD(cpD));
+  if(cpF)setRH('cpF',fD(cpF));
+  if(cpD&&cpF){
+    if(cpN){
+      ge('jrN').textContent=cpN;ge('jrD').textContent='(ajusté RH)';ge('jrBlk').style.display='flex';
+    } else {
+      var r=countJ(cpD,cpF);
+      ge('jrN').textContent=r.c;ge('jrD').textContent=r.fe?'dont '+r.fe+' jour(s) ferié(s)':'';ge('jrBlk').style.display='flex';
+    }
+  } else if(cpN){
+    ge('jrN').textContent=cpN;ge('jrD').textContent='(ajusté RH)';ge('jrBlk').style.display='flex';
+  }
+  var cs=ge('cpSignal');if(cs)cs.checked=false;
+  var csn=ge('cpSignalNote');if(csn)csn.value='';
+  var csw=ge('cpSignalNoteWrap');if(csw)csw.style.display='none';
+  toast('Ajustements CP appliqués',3000);
+}
+function applyRHAdjAbs(){
+  var motif=gv('rhAbsMotif'),absD=gv('rhAbsD'),absF=gv('rhAbsF'),absH=gv('rhAbsH'),absJ=gv('rhAbsJ');
+  if(motif){
+    var motifBadges=document.querySelectorAll('#secABS [style*="background:var(--g)"]');
+    motifBadges.forEach(function(el){el.textContent=motif;});
+    var evtField=ge('evtM');if(evtField){setRH('evtM',motif);}
+  }
+  if(absD)setRH('absD',fD(absD));
+  if(absF)setRH('absF',fD(absF));
+  if(absH)setRH('absH',absH);
+  if(absJ)setRH('absJ',absJ);
+  toast('Ajustements absence appliqués',3000);
+}
 function calcJ(){
   var d=gv('cpD'),f=gv('cpF');
   if(!d||!f){ge('jrN').textContent='-';ge('jrD').textContent='';return}
@@ -537,6 +585,10 @@ function drawStrokes(canvas,strokes){
 
 /* Collecte */
 var _md=null,_dlN='',_rhN='';
+function toggleCpSignal(){
+  var w=ge('cpSignalNoteWrap');
+  if(w)w.style.display=(ge('cpSignal')&&ge('cpSignal').checked)?'block':'none';
+}
 function collect(){
   var me=document.querySelector('input[name="motif"]:checked');
   return{
@@ -544,7 +596,7 @@ function collect(){
     nom:gv('nom'),prenom:gv('prenom'),
     annuleRemplace:getARData(),
     date:ge('today').textContent,tsC:_tsC,
-    cp:{on:isSec('CP'),d:gv('cpD'),f:gv('cpF'),n:ge('jrN').textContent,det:ge('jrD').textContent},
+    cp:{on:isSec('CP'),d:gv('cpD'),f:gv('cpF'),n:ge('jrN').textContent,det:ge('jrD').textContent,signal:!!(ge('cpSignal')&&ge('cpSignal').checked),signalNote:gv('cpSignalNote')},
     abs:{on:isSec('ABS'),m:me?me.value:'',mL:me?me.closest('.mc').querySelector('label').textContent.trim():'',
       evtM:gv('evtM'),d:gv('absD'),f:gv('absF'),h:gv('absH'),j:gv('absJ')},
     sigC:cvJpeg('cvC',0.55),
@@ -565,7 +617,9 @@ function buildDir(data){
     cpHtml="<div class=\"sec on\"><div class=\"sec-hdr\" style=\"pointer-events:none\"><div class=\"ck on\"></div><span class=\"sec-ttl\">Solicite un conge paye</span></div><div class=\"sec-body open\"><div class=\"dg\">";
     cpHtml+="<div class=\"fg\"><label class=\"lbl\">Premier jour</label><div style=\"font-size:13px;font-weight:600;padding:5px 2px;border-bottom:1.5px solid var(--bd)\">"+cD+"</div></div><div class=\"fg\"><label class=\"lbl\">Dernier jour</label><div style=\"font-size:13px;font-weight:600;padding:5px 2px;border-bottom:1.5px solid var(--bd)\">"+cF+"</div></div></div><div class=\"jr\"><div class=\"jrn\">"+cN+"</div><div class=\"jrd\"><strong>jours ouvres</strong>";
     if(cDet)cpHtml+="<br><span style=\"font-size:10px;color:#999\">"+cDet+"</span>";
-    cpHtml+="</div></div><div class=\"rappel\">Le congé principal (20 jours ouvrés) doit impérativement être pris dans la période du 1er mai au 31 octobre. &laquo;&nbsp;Si pour des raisons personnelles et avec l\'accord de l\'entreprise, je prends moins de jours dans la période mentionnée ci-dessus, je renonce à bénéficier des jours de fractionnement&nbsp;&raquo;</div></div></div>";
+    cpHtml+="</div></div><div class=\"rappel\">Le congé principal (20 jours ouvrés) doit impérativement être pris dans la période du 1er mai au 31 octobre. &laquo;&nbsp;Si pour des raisons personnelles et avec l\'accord de l\'entreprise, je prends moins de jours dans la période mentionnée ci-dessus, je renonce à bénéficier des jours de fractionnement&nbsp;&raquo;</div>";
+    if(data.cp.signal)cpHtml+="<div style=\"margin-top:8px;padding:7px 10px;background:#FFF3CD;border:1.5px solid var(--g);border-radius:5px;font-size:11px;color:#856404;font-weight:600\">⚠️ Le collaborateur signale une erreur possible sur le nombre de jours"+(data.cp.signalNote?" : "+esc(data.cp.signalNote):"")+"</div>";
+    cpHtml+="</div></div>";
   }
   var absHtml="";
   if(absOn&&data.abs){
@@ -692,12 +746,40 @@ function openMailDir(){_ouvrirMailDir(_md||{},'');}
 
 var _isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
 
+// Remplace temporairement les inputs/textarea par des divs pleine largeur
+// pour eviter que html2canvas ne coupe le texte qui deborde du champ visible.
+function freezeTextFields(){
+  var frozen=[];
+  var sel='#wrap input[type="text"]:not([style*="display: none"]), #wrap textarea';
+  document.querySelectorAll(sel).forEach(function(el){
+    if(el.offsetParent===null)return;
+    var val=el.value||'';
+    if(!val.trim())return;
+    var cs=window.getComputedStyle(el);
+    var div=document.createElement('div');
+    div.textContent=val;
+    div.style.cssText='font-family:'+cs.fontFamily+';font-size:'+cs.fontSize+';font-weight:'+cs.fontWeight+';color:'+cs.color+';padding:'+cs.padding+';border-bottom:'+cs.borderBottom+';width:100%;white-space:pre-wrap;word-break:break-word;min-height:'+el.offsetHeight+'px;box-sizing:border-box;background:'+(cs.backgroundColor==='rgba(0, 0, 0, 0)'?'transparent':cs.backgroundColor);
+    el.parentNode.insertBefore(div,el);
+    el.style.display='none';
+    frozen.push({el:el,div:div});
+  });
+  return frozen;
+}
+function unfreezeTextFields(frozen){
+  (frozen||[]).forEach(function(f){
+    if(f.div&&f.div.parentNode)f.div.parentNode.removeChild(f.div);
+    f.el.style.display='';
+  });
+}
 async function genPDF(asBlob){
   if(_isIOS)return null;
   var bCP=ge('bodyCP'),bAB=ge('bodyABS');
   var wCP=bCP.classList.contains('open'),wAB=bAB.classList.contains('open');
   bCP.classList.add('open');bAB.classList.add('open');
   var sh=ge('shield');if(sh)sh.style.display='none';
+  // Masquer panneaux ajustement RH
+  var adjPanels=[ge('rhAdjBox'),ge('rhAdjBoxAbs')];
+  adjPanels.forEach(function(el){if(el)el.style.visibility='hidden'});
   // Masquer l'overlay iOS s'il est présent
   var iosOverlay=document.getElementById('ios-rh-overlay');
   if(iosOverlay)iosOverlay.style.display='none';
@@ -707,11 +789,13 @@ async function genPDF(asBlob){
   document.querySelectorAll('input[type="date"]').forEach(function(el){
     if(!el.value)return;saved.push({el:el,v:el.value});el.type='text';el.value=fD(el.value);
   });
+  var frozenFields=freezeTextFields();
   var res=null;
   try{
     // windowWidth:860 = largeur réelle du wrap, scale:1.2 pour tenir sur A4
     var cv=await html2canvas(ge('wrap'),{scale:1.2,useCORS:true,logging:false,windowWidth:860});
     saved.forEach(function(s){s.el.value='';s.el.type='date';s.el.value=s.v});
+    unfreezeTextFields(frozenFields);
     var img=cv.toDataURL('image/jpeg',.88);
     var P=window.jspdf.jsPDF;
     var margin=4,pageW=210,pageH=297,maxW=pageW-2*margin,maxH=pageH-2*margin;
@@ -722,9 +806,10 @@ async function genPDF(asBlob){
     pdf.addImage(img,'JPEG',x,y,imgW,imgH);
     if(asBlob)res=pdf.output('blob');
     else{pdf.save(('Demande_'+(_md?_md.prenom:gv('prenom'))+'_'+(_md?_md.nom:gv('nom'))+(_md?'_SIGNE':'')+'.pdf').replace(/\s/g,'-'));res=true}
-  }catch(err){saved.forEach(function(s){s.el.value='';s.el.type='date';s.el.value=s.v});toast('Erreur PDF')}
+  }catch(err){saved.forEach(function(s){s.el.value='';s.el.type='date';s.el.value=s.v});unfreezeTextFields(frozenFields);toast('Erreur PDF')}
   // Restaurer
   document.querySelectorAll('.modal,#toast,#sp').forEach(function(el){el.style.visibility='';});
+  adjPanels.forEach(function(el){if(el)el.style.visibility=''});
   if(iosOverlay)iosOverlay.style.display='';
   if(!wCP)bCP.classList.remove('open');if(!wAB)bAB.classList.remove('open');
   if(sh)sh.style.display='none';
@@ -943,6 +1028,9 @@ document.addEventListener('DOMContentLoaded',function(){
     ge('badgeTxt').textContent='RH';
     ge('bannerMsg').innerHTML='Demande signee — <button class="btn bgr" style="padding:6px 14px;font-size:12px" onclick="exportPDF();logRHValide()">Telecharger le PDF</button>';
     ge('btnDir').style.display='none';ge('btnRH').style.display='none';ge('btnPDF').style.display='none';
+      // Bouton ajustement RH
+      var adjBtn=document.createElement('button');adjBtn.className='btn bol';adjBtn.textContent='✏️ Ajustement congés payés';adjBtn.style.fontSize='12px';adjBtn.onclick=function(){var ab=ge('rhAdjBox');if(ab)ab.style.display=ab.style.display==='none'?'block':'none';};var _bz=ge('btnZone'),_bp=ge('btnPDF');if(_bz&&_bp)_bz.insertBefore(adjBtn,_bp);else if(_bz)_bz.appendChild(adjBtn);
+      var adjBtnAbs=document.createElement('button');adjBtnAbs.className='btn bol';adjBtnAbs.textContent='✏️ Ajuster l\u2019absence';adjBtnAbs.style.fontSize='12px';adjBtnAbs.onclick=function(){var ab=ge('rhAdjBoxAbs');if(ab)ab.style.display=ab.style.display==='none'?'block':'none';};if(_bz&&_bp)_bz.insertBefore(adjBtnAbs,_bp);else if(_bz)_bz.appendChild(adjBtnAbs);
     var sh=ge('shield');if(sh)sh.style.display='none';
     var db=ge('dirBlk');if(db){db.classList.remove('locked');db.style.pointerEvents='none';}
     if(_rh.annuleRemplace){
@@ -958,6 +1046,12 @@ document.addEventListener('DOMContentLoaded',function(){
       if(_rh.cp.f){var elCpF=ge('cpF');if(elCpF){elCpF.type='text';elCpF.value=fD(_rh.cp.f);}}
       if(_rh.cp.n)ge('jrN').textContent=_rh.cp.n;
       if(_rh.cp.det)ge('jrD').textContent=_rh.cp.det;
+      if(_rh.cp.signal){
+        var cs=ge('cpSignal');if(cs)cs.checked=true;
+        var csn=ge('cpSignalNote');if(csn)csn.value=_rh.cp.signalNote||'';
+        var csw=ge('cpSignalNoteWrap');if(csw)csw.style.display='block';
+        ge('bannerMsg').innerHTML+='<br><span style="color:#C0392B;font-weight:700">⚠️ Le collaborateur signale une erreur possible sur le nombre de jours — vérifiez avant validation.</span>';
+      }
     }
     if(_rh.abs&&_rh.abs.on){
       openSec('ABS');
@@ -1087,5 +1181,31 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 </script>
+<div id="rhAdjBox" style="display:none;max-width:900px;margin:10px auto 6px;background:#fff;border:2px solid var(--g);border-radius:8px;padding:14px 20px;box-shadow:0 4px 16px rgba(0,0,0,.1)">
+  <div style="font-size:12px;font-weight:700;color:var(--g);margin-bottom:10px">✏️ Ajustement congés payés (réservé RH)</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+    <div class="fg"><label class="lbl">Nouveau premier jour non travaillé</label><input class="inp" type="date" id="rhCpD"></div>
+    <div class="fg"><label class="lbl">Nouveau dernier jour non travaillé</label><input class="inp" type="date" id="rhCpF"></div>
+  </div>
+  <div style="margin-bottom:12px">
+    <div class="fg"><label class="lbl">Nombre de jours ouvrés (laisser vide = recalcul automatique)</label><input class="inp" id="rhCpN" placeholder="ex: 5" style="max-width:200px"></div>
+  </div>
+  <button class="btn bg" style="font-size:12px" onclick="applyRHAdj()">Appliquer les ajustements CP</button>
+</div>
+<div id="rhAdjBoxAbs" style="display:none;max-width:900px;margin:6px auto 30px;background:#fff;border:2px solid var(--g);border-radius:8px;padding:14px 20px;box-shadow:0 4px 16px rgba(0,0,0,.1)">
+  <div style="font-size:12px;font-weight:700;color:var(--g);margin-bottom:10px">✏️ Ajustement autorisation d'absence (réservé RH)</div>
+  <div style="margin-bottom:10px">
+    <div class="fg"><label class="lbl">Motif</label><input class="inp" id="rhAbsMotif" placeholder="ex: Décès, Événement familial..."></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+    <div class="fg"><label class="lbl">Date début</label><input class="inp" type="date" id="rhAbsD"></div>
+    <div class="fg"><label class="lbl">Date fin</label><input class="inp" type="date" id="rhAbsF"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+    <div class="fg"><label class="lbl">Heures d'absence</label><input class="inp" id="rhAbsH" placeholder="ex: 7h"></div>
+    <div class="fg"><label class="lbl">Nombre de jours</label><input class="inp" id="rhAbsJ" placeholder="ex: 1"></div>
+  </div>
+  <button class="btn bg" style="font-size:12px" onclick="applyRHAdjAbs()">Appliquer les ajustements absence</button>
+</div>
 </body>
 </html>
