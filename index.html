@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script>
+try{
+  var _xhrM=new XMLHttpRequest();
+  _xhrM.open('GET','maintenance.txt?_='+Date.now(),false);
+  _xhrM.send(null);
+  if(_xhrM.status===200 && _xhrM.responseText.trim().toLowerCase()==='on'){
+    document.write('<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Maintenance — Demande de Congés</title></head><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#F2F8F4;color:#1A1A1A"><div style="text-align:center;padding:20px;max-width:400px"><h2 style="font-family:Georgia,serif;margin-bottom:10px">Formulaire temporairement indisponible</h2><p style="color:#666;font-size:14px">Une mise à jour est en cours. Merci de réessayer dans quelques minutes.</p></div></body></html>');
+    document.close();
+  }
+}catch(e){}
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Demande de Conges - Edgard Opticiens</title>
