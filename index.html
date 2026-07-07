@@ -1119,7 +1119,7 @@ document.addEventListener('DOMContentLoaded',function(){
     if(_rh.date&&elTod)elTod.textContent=_rh.date;
     if(_rh.tsC&&elTsC2)elTsC2.textContent='Signe le '+_rh.tsC;
     // Rendre tout en lecture seule
-    document.querySelectorAll('input,select,textarea').forEach(function(el){el.setAttribute('readonly','');el.style.pointerEvents='none';});
+    document.querySelectorAll('#wrap input,#wrap select,#wrap textarea').forEach(function(el){el.setAttribute('readonly','');el.style.pointerEvents='none';});
     return;
   }
   if(_md&&_md.nom&&_md.societe){
