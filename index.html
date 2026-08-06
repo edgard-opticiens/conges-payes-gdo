@@ -802,27 +802,58 @@ function doSendDir(){
   }
   tryShorten(longUrl,function(dirUrl){unspin();_ouvrirMailDir(data,dirUrl);});
 }
+var FORMIO_OPTIONS=[
+  {prenom:'Romain',nom:'GUITTARD',email:'r.guittard@groupe-edgard.com'},
+  {prenom:'Jérôme',nom:'PETIT',email:'j.petit@groupe-edgard.com'},
+  {prenom:'Jessica',nom:'SOULARD',email:'j.soulard@groupe-edgard.com'}
+];
+function openFormioSelect(cb){
+  var box=document.createElement('div');box.className='modal show';box.id='mdlFormio';
+  var sel='<select id=\'formioSel\' style=\'width:100%;padding:9px 10px;border:1.5px solid var(--bd);border-radius:6px;font-size:13px;margin-bottom:14px\'>'
+    +FORMIO_OPTIONS.map(function(o){return '<option value="'+o.email+'">'+o.prenom+' '+o.nom+'</option>';}).join('')
+    +'</select>';
+  box.innerHTML='<div class="mbox"><div class="mttl">Envoyer à quel responsable ?</div>'+sel
+    +'<div style="display:flex;gap:8px;justify-content:flex-end">'
+    +'<button class="btn bol" style="font-size:12px;padding:8px 16px" id="formioCancel">Annuler</button>'
+    +'<button class="btn bgr" style="font-size:12px;padding:8px 16px" id="formioOk">Continuer</button>'
+    +'</div></div>';
+  document.body.appendChild(box);
+  box.querySelector('#formioCancel').onclick=function(){document.body.removeChild(box);};
+  box.querySelector('#formioOk').onclick=function(){
+    var email=box.querySelector('#formioSel').value;
+    document.body.removeChild(box);
+    cb(email);
+  };
+}
 function _ouvrirMailDir(data,dirUrl){
   var recap='';
   if(data.cp&&data.cp.on)recap+='\n- CP : du '+fD(data.cp.d)+' au '+fD(data.cp.f)+' ('+data.cp.n+' jours)';
   if(data.abs&&data.abs.on)recap+='\n- Absence : '+fD(data.abs.d)+' au '+fD(data.abs.f);
-  var body='Bonjour,\n\nMerci de signer la demande de '+data.prenom+' '+data.nom+' ('+data.societe+').';
-  if(recap)body+='\n\nRecapitulatif :'+recap;
-  body+='\n\nLien pour signer (cliquez pour ouvrir) :\n\n'+dirUrl+'\n\nCordialement,\n'+data.prenom+' '+data.nom;
   var hdr=mailHeader(data);
-  body='══════════════════════════\n'+hdr+'\n══════════════════════════\n\n'+body;
   var subj='[A SIGNER] '+hdr;
-  openEmailModal('Envoyer au directeur',[],function(emails){
-    spin('Envoi en cours...');
-    sendMailSilent({to:emails[0],cc:emails.slice(1),subject:subj,body:body})
-      .then(function(){unspin();toast('Demande envoyee au directeur');})
-      .catch(function(){unspin();toast('Erreur d\'envoi, reessayez');});
-    logToSheet({id:makeId(data),date_creation:new Date().toISOString(),societe:data.societe,nom:data.nom,prenom:data.prenom,
-      type:(data.cp&&data.cp.on?'CP':'')+(data.abs&&data.abs.on?(data.cp&&data.cp.on?'+':'')+'ABS':''),
-      date_debut:(data.cp&&data.cp.d)||(data.abs&&data.abs.d)||'',
-      date_fin:(data.cp&&data.cp.f)||(data.abs&&data.abs.f)||'',
-      etape:'directeur',statut:'en_attente',en_attente_nom:'Directeur',en_attente_email:emails.join(', '),lien:dirUrl});
-  });
+  function proceed(prefillEmails){
+    openEmailModal('Envoyer au directeur',prefillEmails,function(emails){
+      var prenomDest=EMAIL_PRENOMS[emails[0]];
+      var body='Bonjour'+(prenomDest?' '+prenomDest:'')+',\n\nMerci de signer la demande de '+data.prenom+' '+data.nom+' ('+data.societe+').';
+      if(recap)body+='\n\nRecapitulatif :'+recap;
+      body+='\n\nLien pour signer (cliquez pour ouvrir) :\n\n'+dirUrl+'\n\nCordialement,\n'+data.prenom+' '+data.nom;
+      body='══════════════════════════\n'+hdr+'\n══════════════════════════\n\n'+body;
+      spin('Envoi en cours...');
+      sendMailSilent({to:emails[0],cc:emails.slice(1),subject:subj,body:body})
+        .then(function(){unspin();toast('Demande envoyee au directeur');})
+        .catch(function(){unspin();toast('Erreur d\'envoi, reessayez');});
+      logToSheet({id:makeId(data),date_creation:new Date().toISOString(),societe:data.societe,nom:data.nom,prenom:data.prenom,
+        type:(data.cp&&data.cp.on?'CP':'')+(data.abs&&data.abs.on?(data.cp&&data.cp.on?'+':'')+'ABS':''),
+        date_debut:(data.cp&&data.cp.d)||(data.abs&&data.abs.d)||'',
+        date_fin:(data.cp&&data.cp.f)||(data.abs&&data.abs.f)||'',
+        etape:'directeur',statut:'en_attente',en_attente_nom:'Directeur',en_attente_email:emails.join(', '),lien:dirUrl});
+    });
+  }
+  if(data.societe==='Formio'){
+    openFormioSelect(function(chosenEmail){proceed([chosenEmail]);});
+  }else{
+    proceed(getDirMails(data.societe));
+  }
 }
 function openMailDir(){_ouvrirMailDir(_md||{},'');}
 
@@ -926,6 +957,31 @@ async function exportPDF(){
 
 /* Emails RH par magasin */
 function getRhMail(societe){return 'ressources-humaines@groupe-edgard.com';}
+var DIR_MAILS={
+  'Chato':['f.billard@groupe-edgard.com'],
+  'Chemillo':['a.rouxel@groupe-edgard.com'],
+  'Cholo':['s.guemard@groupe-edgard.com'],
+  'Dunes':['l.fautrat@groupe-edgard.com'],
+  'Ecume':['jb.stevant@groupe-edgard.com'],
+  'Formio':['r.guittard@groupe-edgard.com','j.petit@groupe-edgard.com'],
+  'Marais':['pe.bizot@groupe-edgard.com'],
+  'Mudo':['c.duguet@groupe-edgard.com'],
+  'Niorto':['n.hallereau@groupe-edgard.com']
+};
+function getDirMails(societe){return DIR_MAILS[societe]||[];}
+var EMAIL_PRENOMS={
+  'f.billard@groupe-edgard.com':'François',
+  'a.rouxel@groupe-edgard.com':'Amélie',
+  's.guemard@groupe-edgard.com':'Shadé',
+  'l.fautrat@groupe-edgard.com':'Ludovic',
+  'jb.stevant@groupe-edgard.com':'Jean Baptiste',
+  'r.guittard@groupe-edgard.com':'Romain',
+  'j.petit@groupe-edgard.com':'Jérôme',
+  'j.soulard@groupe-edgard.com':'Jessica',
+  'pe.bizot@groupe-edgard.com':'Pierre Emmanuel',
+  'c.duguet@groupe-edgard.com':'Céline',
+  'n.hallereau@groupe-edgard.com':'Nadège'
+};
 async function doSendRH(){
   var d=_md||{nom:gv('nom'),prenom:gv('prenom'),societe:gv('societe')};
   var dn=gv('dirNom'),dp=gv('dirPrenom');
