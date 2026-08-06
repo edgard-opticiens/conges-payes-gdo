@@ -805,7 +805,8 @@ function doSendDir(){
 var FORMIO_OPTIONS=[
   {prenom:'Romain',nom:'GUITTARD',email:'r.guittard@groupe-edgard.com'},
   {prenom:'Jérôme',nom:'PETIT',email:'j.petit@groupe-edgard.com'},
-  {prenom:'Jessica',nom:'SOULARD',email:'j.soulard@groupe-edgard.com'}
+  {prenom:'Jessica',nom:'SOULARD',email:'j.soulard@groupe-edgard.com'},
+  {prenom:'Julien',nom:'DERUY',email:'j.deruy@groupe-edgard.com'}
 ];
 function openFormioSelect(cb){
   var box=document.createElement('div');box.className='modal show';box.id='mdlFormio';
@@ -980,7 +981,8 @@ var EMAIL_PRENOMS={
   'j.soulard@groupe-edgard.com':'Jessica',
   'pe.bizot@groupe-edgard.com':'Pierre Emmanuel',
   'c.duguet@groupe-edgard.com':'Céline',
-  'n.hallereau@groupe-edgard.com':'Nadège'
+  'n.hallereau@groupe-edgard.com':'Nadège',
+  'j.deruy@groupe-edgard.com':'Julien'
 };
 async function doSendRH(){
   var d=_md||{nom:gv('nom'),prenom:gv('prenom'),societe:gv('societe')};
