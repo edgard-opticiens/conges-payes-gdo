@@ -760,7 +760,6 @@ function decodeHash(str){
   catch(e){return null}
 }
 function doSendDir(){
-  alert('DEBUG: doSendDir() appelée, societe='+JSON.stringify(gv('societe')));
   if(!gv('societe')){toast('Selectionnez votre societe');return}
   if(!gv('nom').trim()||!gv('prenom').trim()){toast('Saisissez votre nom et prenom');return}
   if(!isSec('CP')&&!isSec('ABS')){toast('Cochez au moins un type de demande');return}
@@ -828,7 +827,6 @@ function openFormioSelect(cb){
   };
 }
 function _ouvrirMailDir(data,dirUrl){
-  alert('DEBUG societe='+JSON.stringify(data.societe)+' | isFormio='+(data.societe==='Formio'));
   var recap='';
   if(data.cp&&data.cp.on)recap+='\n- CP : du '+fD(data.cp.d)+' au '+fD(data.cp.f)+' ('+data.cp.n+' jours)';
   if(data.abs&&data.abs.on)recap+='\n- Absence : '+fD(data.abs.d)+' au '+fD(data.abs.f);
@@ -853,10 +851,8 @@ function _ouvrirMailDir(data,dirUrl){
     });
   }
   if(data.societe==='Formio'){
-    console.log('[DEBUG] branche Formio empruntée, appel openFormioSelect');
     openFormioSelect(function(chosenEmail){proceed([chosenEmail]);});
   }else{
-    console.log('[DEBUG] branche ELSE empruntée (pas Formio)');
     proceed(getDirMails(data.societe));
   }
 }
