@@ -827,6 +827,8 @@ function openFormioSelect(cb){
   };
 }
 function _ouvrirMailDir(data,dirUrl){
+  console.log('[DEBUG] societe reçu par _ouvrirMailDir:',JSON.stringify(data.societe));
+  console.log('[DEBUG] test===Formio:',data.societe==='Formio');
   var recap='';
   if(data.cp&&data.cp.on)recap+='\n- CP : du '+fD(data.cp.d)+' au '+fD(data.cp.f)+' ('+data.cp.n+' jours)';
   if(data.abs&&data.abs.on)recap+='\n- Absence : '+fD(data.abs.d)+' au '+fD(data.abs.f);
@@ -851,8 +853,10 @@ function _ouvrirMailDir(data,dirUrl){
     });
   }
   if(data.societe==='Formio'){
+    console.log('[DEBUG] branche Formio empruntée, appel openFormioSelect');
     openFormioSelect(function(chosenEmail){proceed([chosenEmail]);});
   }else{
+    console.log('[DEBUG] branche ELSE empruntée (pas Formio)');
     proceed(getDirMails(data.societe));
   }
 }
