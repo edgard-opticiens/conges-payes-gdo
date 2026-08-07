@@ -843,8 +843,7 @@ function openDirectorSelect(societe,cb){
   var opts=matches.map(function(d){
     return '<option value="'+d.email+'">'+d.prenom+' '+d.nom+' (pour les demandes collaborateurs)</option>';
   }).join('');
-  opts+='<option value="j.petit@groupe-edgard.com">Jérôme PETIT (pour les demandes directeur)</option>';
-  opts+='<option value="r.guittard@groupe-edgard.com">Romain GUITTARD (pour les demandes directeur)</option>';
+  opts+='<option value="__both_jr__">Jérôme PETIT + Romain GUITTARD (pour les demandes directeur)</option>';
   opts+='<option value="__custom__">+ Ajouter une autre adresse mail</option>';
   box.innerHTML='<div class="mbox"><div class="mttl">Envoyer la demande à quel destinataire ?</div>'
     +'<select id="dirSelect" style="width:100%;padding:9px 10px;border:1.5px solid var(--bd);border-radius:6px;font-size:13px;margin-bottom:10px">'+opts+'</select>'
@@ -868,7 +867,11 @@ function openDirectorSelect(societe,cb){
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){customInput.style.borderColor='#D9534F';toast('Adresse email invalide');return;}
     }
     document.body.removeChild(box);
-    cb(email);
+    if(email==='__both_jr__'){
+      cb(['j.petit@groupe-edgard.com','r.guittard@groupe-edgard.com']);
+    }else{
+      cb([email]);
+    }
   };
 }
 function _ouvrirMailDir(data,dirUrl){
@@ -898,7 +901,7 @@ function _ouvrirMailDir(data,dirUrl){
   if(data.societe==='Formio'){
     openFormioSelect(function(chosenEmail){proceed([chosenEmail]);});
   }else{
-    openDirectorSelect(data.societe,function(chosenEmail){proceed([chosenEmail]);});
+    openDirectorSelect(data.societe,function(chosenEmails){proceed(chosenEmails);});
   }
 }
 function openMailDir(){_ouvrirMailDir(_md||{},'');}
