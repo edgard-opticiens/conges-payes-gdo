@@ -843,7 +843,8 @@ function openDirectorSelect(societe,cb){
   var opts=matches.map(function(d){
     return '<option value="'+d.email+'">'+d.prenom+' '+d.nom+' (pour les demandes collaborateurs)</option>';
   }).join('');
-  opts+='<option value="j.deruy@groupe-edgard.com">Julien DERUY (pour les demandes directeur)</option>';
+  opts+='<option value="j.petit@groupe-edgard.com">Jérôme PETIT (pour les demandes directeur)</option>';
+  opts+='<option value="r.guittard@groupe-edgard.com">Romain GUITTARD (pour les demandes directeur)</option>';
   opts+='<option value="__custom__">+ Ajouter une autre adresse mail</option>';
   box.innerHTML='<div class="mbox"><div class="mttl">Envoyer la demande à quel destinataire ?</div>'
     +'<select id="dirSelect" style="width:100%;padding:9px 10px;border:1.5px solid var(--bd);border-radius:6px;font-size:13px;margin-bottom:10px">'+opts+'</select>'
