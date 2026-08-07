@@ -149,6 +149,7 @@ body{background:#fff;padding:0;}
 <div class="modal" id="mdlEmails">
   <div class="mbox">
     <div class="mttl" id="emlTitle">Destinataires</div>
+    <div style="font-size:11.5px;color:#8a9a8f;margin-bottom:10px">Absent(e) ? Vous pouvez modifier l'adresse proposée ou en ajouter une autre.</div>
     <div id="emailFields"></div>
     <button type="button" class="emlAdd" onclick="addEmailField('')">+ Ajouter une adresse</button>
     <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -826,6 +827,49 @@ function openFormioSelect(cb){
     cb(email);
   };
 }
+var DIRECTOR_LIST_GDO=[
+  {societe:'Chato',prenom:'François',nom:'BILLARD',email:'f.billard@groupe-edgard.com'},
+  {societe:'Chemillo',prenom:'Amélie',nom:'ROUXEL',email:'a.rouxel@groupe-edgard.com'},
+  {societe:'Cholo',prenom:'Shadé',nom:'GUEMARD',email:'s.guemard@groupe-edgard.com'},
+  {societe:'Dunes',prenom:'Ludovic',nom:'FAUTRAT',email:'l.fautrat@groupe-edgard.com'},
+  {societe:'Ecume',prenom:'Jean Baptiste',nom:'STEVANT',email:'jb.stevant@groupe-edgard.com'},
+  {societe:'Marais',prenom:'Pierre Emmanuel',nom:'BIZOT',email:'pe.bizot@groupe-edgard.com'},
+  {societe:'Mudo',prenom:'Céline',nom:'DUGUET',email:'c.duguet@groupe-edgard.com'},
+  {societe:'Niorto',prenom:'Nadège',nom:'HALLEREAU',email:'n.hallereau@groupe-edgard.com'}
+];
+function openDirectorSelect(societe,cb){
+  var box=document.createElement('div');box.className='modal show';box.id='mdlDirSelect';
+  var matches=DIRECTOR_LIST_GDO.filter(function(d){return d.societe===societe;});
+  var opts=matches.map(function(d){
+    return '<option value="'+d.email+'">'+d.prenom+' '+d.nom+' (pour les demandes collaborateurs)</option>';
+  }).join('');
+  opts+='<option value="j.deruy@groupe-edgard.com">Julien DERUY (pour les demandes directeur)</option>';
+  opts+='<option value="__custom__">+ Ajouter une autre adresse mail</option>';
+  box.innerHTML='<div class="mbox"><div class="mttl">Envoyer la demande à quel destinataire ?</div>'
+    +'<select id="dirSelect" style="width:100%;padding:9px 10px;border:1.5px solid var(--bd);border-radius:6px;font-size:13px;margin-bottom:10px">'+opts+'</select>'
+    +'<input id="dirCustomInput" type="email" placeholder="adresse@groupe-edgard.com" style="display:none;width:100%;padding:9px 10px;border:1.5px solid var(--bd);border-radius:6px;font-size:13px;margin-bottom:14px;box-sizing:border-box">'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end">'
+    +'<button class="btn bol" style="font-size:12px;padding:8px 16px" id="dirSelectCancel">Annuler</button>'
+    +'<button class="btn bgr" style="font-size:12px;padding:8px 16px" id="dirSelectOk">Continuer</button>'
+    +'</div></div>';
+  document.body.appendChild(box);
+  var selectEl=box.querySelector('#dirSelect');
+  var customInput=box.querySelector('#dirCustomInput');
+  selectEl.onchange=function(){
+    if(selectEl.value==='__custom__'){customInput.style.display='block';customInput.focus();}
+    else{customInput.style.display='none';}
+  };
+  box.querySelector('#dirSelectCancel').onclick=function(){document.body.removeChild(box);};
+  box.querySelector('#dirSelectOk').onclick=function(){
+    var email=selectEl.value;
+    if(email==='__custom__'){
+      email=customInput.value.trim();
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){customInput.style.borderColor='#D9534F';toast('Adresse email invalide');return;}
+    }
+    document.body.removeChild(box);
+    cb(email);
+  };
+}
 function _ouvrirMailDir(data,dirUrl){
   var recap='';
   if(data.cp&&data.cp.on)recap+='\n- CP : du '+fD(data.cp.d)+' au '+fD(data.cp.f)+' ('+data.cp.n+' jours)';
@@ -853,7 +897,7 @@ function _ouvrirMailDir(data,dirUrl){
   if(data.societe==='Formio'){
     openFormioSelect(function(chosenEmail){proceed([chosenEmail]);});
   }else{
-    proceed(getDirMails(data.societe));
+    openDirectorSelect(data.societe,function(chosenEmail){proceed([chosenEmail]);});
   }
 }
 function openMailDir(){_ouvrirMailDir(_md||{},'');}
