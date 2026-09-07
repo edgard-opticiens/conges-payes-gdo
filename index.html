@@ -837,16 +837,18 @@ var DIRECTOR_LIST_GDO=[
   {societe:'Mudo',prenom:'Céline',nom:'DUGUET',email:'c.duguet@groupe-edgard.com'},
   {societe:'Niorto',prenom:'Nadège',nom:'HALLEREAU',email:'n.hallereau@groupe-edgard.com'}
 ];
+var DIRECTION_ACTIF_URL='https://edgard-opticiens.app.n8n.cloud/webhook/direction-actif';
 function openDirectorSelect(societe,cb){
   var box=document.createElement('div');box.className='modal show';box.id='mdlDirSelect';
   var matches=DIRECTOR_LIST_GDO.filter(function(d){return d.societe===societe;});
-  var opts=matches.map(function(d){
+  var baseOpts=matches.map(function(d){
     return '<option value="'+d.email+'">'+d.prenom+' '+d.nom+' (pour les demandes collaborateurs)</option>';
   }).join('');
-  opts+='<option value="__both_jr__">Jérôme PETIT + Romain GUITTARD (pour les demandes directeur)</option>';
-  opts+='<option value="__custom__">+ Ajouter une autre adresse mail</option>';
   box.innerHTML='<div class="mbox"><div class="mttl">Envoyer la demande à quel destinataire ?</div>'
-    +'<select id="dirSelect" style="width:100%;padding:9px 10px;border:1.5px solid var(--bd);border-radius:6px;font-size:13px;margin-bottom:10px">'+opts+'</select>'
+    +'<div id="dirDelegNote" style="display:none;font-size:12px;color:#9a6b16;background:#fdf3dd;border:1px solid #f0dca6;border-radius:6px;padding:8px 10px;margin-bottom:10px"></div>'
+    +'<select id="dirSelect" style="width:100%;padding:9px 10px;border:1.5px solid var(--bd);border-radius:6px;font-size:13px;margin-bottom:10px">'+baseOpts
+    +'<option value="__both_jr__">Jérôme PETIT + Romain GUITTARD (pour les demandes directeur)</option>'
+    +'<option value="__custom__">+ Ajouter une autre adresse mail</option></select>'
     +'<input id="dirCustomInput" type="email" placeholder="adresse@groupe-edgard.com" style="display:none;width:100%;padding:9px 10px;border:1.5px solid var(--bd);border-radius:6px;font-size:13px;margin-bottom:14px;box-sizing:border-box">'
     +'<div style="display:flex;gap:8px;justify-content:flex-end">'
     +'<button class="btn bol" style="font-size:12px;padding:8px 16px" id="dirSelectCancel">Annuler</button>'
@@ -855,6 +857,20 @@ function openDirectorSelect(societe,cb){
   document.body.appendChild(box);
   var selectEl=box.querySelector('#dirSelect');
   var customInput=box.querySelector('#dirCustomInput');
+  var note=box.querySelector('#dirDelegNote');
+  fetch(DIRECTION_ACTIF_URL+'?societe='+encodeURIComponent(societe)).then(function(r){return r.json();}).then(function(res){
+    if(res&&res.ok&&res.directeurAbsent){
+      if(res.delegation&&res.email){
+        var opt=document.createElement('option');
+        opt.value=res.email;
+        opt.textContent=res.nomComplet+' — Adjoint (le directeur est actuellement en congés)';
+        selectEl.insertBefore(opt,selectEl.firstChild);
+        selectEl.value=res.email;
+      }
+      note.style.display='block';
+      note.textContent="Ton directeur est en congés, la demande va être envoyée à son adjoint. Si pas d'adjoint dans le magasin, merci de renseigner l'adresse mail du signataire.";
+    }
+  }).catch(function(){});
   selectEl.onchange=function(){
     if(selectEl.value==='__custom__'){customInput.style.display='block';customInput.focus();}
     else{customInput.style.display='none';}
