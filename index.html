@@ -326,6 +326,33 @@ function makeId(d){
   var debut=(d.cp&&d.cp.d)||(d.abs&&d.abs.d)||new Date().toISOString().slice(0,10);
   return (d.societe||'')+'_'+(d.nom||'')+'_'+(d.prenom||'')+'_'+debut;
 }
+
+/* ===================== ANTI DOUBLE-SIGNATURE Jerome/Romain ===================== */
+var CONGES_DUAL_WEBHOOK='https://edgard-opticiens.app.n8n.cloud/webhook/conges-dual';
+var _congesDual=false;
+function congesEmailsSontDual(emails){
+  var norm=(emails||[]).map(function(e){return (e||'').toLowerCase().trim()});
+  return norm.indexOf('j.petit@groupe-edgard.com')>=0 && norm.indexOf('r.guittard@groupe-edgard.com')>=0;
+}
+function congesMarquerDualSiBesoin(emails,data){
+  if(!congesEmailsSontDual(emails))return;
+  fetch(CONGES_DUAL_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'marquer_dual',cle:makeId(data),nom:data.nom,prenom:data.prenom})}).catch(function(){});
+}
+function congesCheckDual(){
+  fetch(CONGES_DUAL_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'check',cle:makeId(_md),nom:_md.nom,prenom:_md.prenom})})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      _congesDual=!!(d&&d.dual);
+      if(d&&d.signe){congesLockDejaValide();}
+    }).catch(function(){});
+}
+function congesLockDejaValide(){
+  var db=ge('dirBlk');if(db){db.style.pointerEvents='none';db.style.opacity='0.55';}
+  var btn=ge('btnRH');if(btn){btn.disabled=true;btn.style.pointerEvents='none';btn.style.opacity='0.5';}
+  var bm=ge('bannerMsg');if(bm)bm.innerHTML='<b>Déjà validée</b> — Cette demande a déjà été signée par un autre destinataire (Jérôme PETIT / Romain GUITTARD) et transmise au RH. Aucune action supplémentaire n’est nécessaire de votre part.';
+}
 function logRHValide(){
   if(!_rh)return;
   logToSheet({
@@ -912,6 +939,7 @@ function _ouvrirMailDir(data,dirUrl){
         date_debut:(data.cp&&data.cp.d)||(data.abs&&data.abs.d)||'',
         date_fin:(data.cp&&data.cp.f)||(data.abs&&data.abs.f)||'',
         etape:'directeur',statut:'en_attente',en_attente_nom:'Directeur',en_attente_email:emails.join(', '),lien:dirUrl});
+      congesMarquerDualSiBesoin(emails,data);
     });
   }
   if(data.societe==='Formio'){
@@ -1055,6 +1083,10 @@ async function doSendRH(){
   var dec=(document.querySelector('input[name="dec"]:checked')||{}).value||'';
   if(!dec){toast('Cochez Autorise ou Refus');return;}
   var sig=(dp&&dn)?dp+' '+dn:'';
+  if(_congesDual){
+    fetch(CONGES_DUAL_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'signer',cle:makeId(d),nom:d.nom,prenom:d.prenom})}).catch(function(){});
+  }
   var rhMail=getRhMail(d.societe);
   var prefillRH=['ressources-humaines@groupe-edgard.com'];
   if(rhMail&&rhMail!=='ressources-humaines@groupe-edgard.com')prefillRH.push(rhMail);
@@ -1393,6 +1425,7 @@ document.addEventListener('DOMContentLoaded',function(){
     initSvgSignR(0);setTimeout(function(){initSvgSignR(0);},200);
     // Champs collab en lecture seule
     ['nom','prenom'].forEach(function(id){var el=ge(id);if(el)el.setAttribute('readonly','');});
+    congesCheckDual();
   } else {
     // Mode collaborateur — SVG interactif (jamais noir sur iOS)
     initSvgSign(0);
