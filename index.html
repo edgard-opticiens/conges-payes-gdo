@@ -777,15 +777,35 @@ function buildDir(data){
 function encodeHash(data){
   try{
     var d=JSON.parse(JSON.stringify(data));
-    delete d.sigC;      // trop lourd pour l'URL
+    delete d.sigC;      // trop lourd, sigStrokes suffit pour redessiner
     delete d.sigCThumb; // inutile désormais
     // sigStrokes reste dans d
-    return encodeURIComponent(JSON.stringify(d));
-  }catch(e){return ''}
+    return d;
+  }catch(e){return null}
 }
 function decodeHash(str){
   try{return JSON.parse(decodeURIComponent(str));}
   catch(e){return null}
+}
+/* Liens courts — stockage cote serveur (n8n) plutot qu'un JSON complet dans l'URL */
+var LIENCOURT_SAVE='https://edgard-opticiens.app.n8n.cloud/webhook/lien-court-save';
+var LIENCOURT_GET='https://edgard-opticiens.app.n8n.cloud/webhook/lien-court-get';
+function baseUrl(){
+  return (window.location.protocol==='https:')
+    ?window.location.href.split('?')[0].split('#')[0]
+    :'https://edgard-opticiens.github.io/congespayes';
+}
+function creerLienCourt(paramName,payloadObj,cb){
+  var fallback=baseUrl()+'?'+paramName+'='+encodeURIComponent(JSON.stringify(payloadObj));
+  try{
+    fetch(LIENCOURT_SAVE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:payloadObj})})
+      .then(function(r){return r.json();})
+      .then(function(res){
+        if(res&&res.ok&&res.cle){cb(baseUrl()+'?'+paramName+'='+res.cle);}
+        else{cb(fallback);}
+      })
+      .catch(function(){cb(fallback);});
+  }catch(e){cb(fallback);}
 }
 function doSendDir(){
   if(!gv('societe')){toast('Selectionnez votre societe');return}
@@ -797,38 +817,8 @@ function doSendDir(){
   var sh=ge('shield');if(sh)sh.style.display='none';
   var data=collect();_md=data;
   if(sh)sh.style.display='';
-  var encoded=encodeHash(data);
-  var base=(window.location.protocol==='https:')
-    ?window.location.href.split('?')[0].split('#')[0]
-    :'https://edgard-opticiens.github.io/congespayes';
-  var longUrl=base+'?d='+encoded;
-  function tryShorten(longUrl,cb){
-    var done=false;
-    var timer=setTimeout(function(){if(!done){done=true;cb(longUrl);}},4000);
-    fetch('https://is.gd/create.php?format=json&url='+encodeURIComponent(longUrl))
-      .then(function(r){return r.json()})
-      .then(function(res){
-        if(done)return;
-        if(res&&res.shorturl){done=true;clearTimeout(timer);cb(res.shorturl);}
-        else{
-          // is.gd a répondu mais pas de shorturl → essayer TinyURL
-          clearTimeout(timer);
-          fetch('https://tinyurl.com/api-create.php?url='+encodeURIComponent(longUrl))
-            .then(function(r){return r.text()})
-            .then(function(t){done=true;cb((t&&t.startsWith('https'))?t:longUrl);})
-            .catch(function(){done=true;cb(longUrl);});
-        }
-      })
-      .catch(function(){
-        if(done)return;clearTimeout(timer);
-        // is.gd a échoué → essayer TinyURL
-        fetch('https://tinyurl.com/api-create.php?url='+encodeURIComponent(longUrl))
-          .then(function(r){return r.text()})
-          .then(function(t){done=true;cb((t&&t.startsWith('https'))?t:longUrl);})
-          .catch(function(){done=true;cb(longUrl);});
-      });
-  }
-  tryShorten(longUrl,function(dirUrl){unspin();_ouvrirMailDir(data,dirUrl);});
+  var cleaned=encodeHash(data);
+  creerLienCourt('d',cleaned,function(dirUrl){unspin();_ouvrirMailDir(data,dirUrl);});
 }
 var FORMIO_OPTIONS=[
   {prenom:'Romain',nom:'GUITTARD',email:'r.guittard@groupe-edgard.com'},
@@ -1105,24 +1095,7 @@ async function doSendRH(){
       dirNom:dn,dirPrenom:dp,tsR:_tsR,dec:dec,refM:gv('refM'),
       annuleRemplace:d.annuleRemplace||null
     };
-    var base=(window.location.protocol==='https:')?window.location.href.split('?')[0].split('#')[0]:'https://edgard-opticiens.github.io/congespayes';
-    var encoded=encodeURIComponent(JSON.stringify(rhData));
-    var longUrl=base+'?r='+encoded;
-    function tryShorten2(url,cb){
-      var done=false;
-      var t=setTimeout(function(){if(!done){done=true;cb(url);}},4000);
-      fetch('https://is.gd/create.php?format=json&url='+encodeURIComponent(url))
-        .then(function(r){return r.json();})
-        .then(function(res){if(done)return;done=true;clearTimeout(t);cb((res&&res.shorturl)?res.shorturl:url);})
-        .catch(function(){
-          if(done)return;clearTimeout(t);
-          fetch('https://tinyurl.com/api-create.php?url='+encodeURIComponent(url))
-            .then(function(r){return r.text();})
-            .then(function(t2){done=true;cb((t2&&t2.startsWith('https'))?t2:url);})
-            .catch(function(){done=true;cb(url);});
-        });
-    }
-    tryShorten2(longUrl,function(rhUrl){
+    creerLienCourt('r',rhData,function(rhUrl){
       unspin();
       var body2=body+'\n\nLien pour telecharger le PDF :\n\n'+rhUrl;
       openEmailModal('Envoyer aux RH',prefillRH,function(emails){
@@ -1150,23 +1123,7 @@ async function doSendRH(){
     dirNom:dn,dirPrenom:dp,tsR:_tsR,dec:dec,refM:gv('refM'),
     annuleRemplace:d.annuleRemplace||null
   };
-  var basePC=(window.location.protocol==='https:')?window.location.href.split('?')[0].split('#')[0]:'https://edgard-opticiens.github.io/congespayes';
-  var longUrlPC=basePC+'?r='+encodeURIComponent(JSON.stringify(rhDataPC));
-  function shortenPC(url,cb){
-    var done=false;
-    var t=setTimeout(function(){if(!done){done=true;cb(url);}},4000);
-    fetch('https://is.gd/create.php?format=json&url='+encodeURIComponent(url))
-      .then(function(r){return r.json();})
-      .then(function(res){if(done)return;done=true;clearTimeout(t);cb((res&&res.shorturl)?res.shorturl:url);})
-      .catch(function(){
-        if(done)return;clearTimeout(t);
-        fetch('https://tinyurl.com/api-create.php?url='+encodeURIComponent(url))
-          .then(function(r){return r.text();})
-          .then(function(t2){done=true;cb((t2&&t2.startsWith('https'))?t2:url);})
-          .catch(function(){done=true;cb(url);});
-      });
-  }
-  shortenPC(longUrlPC,function(rhUrl){
+  creerLienCourt('r',rhDataPC,function(rhUrl){
     unspin();
     genPDF(true).then(function(blob){
       if(blob){
@@ -1264,15 +1221,45 @@ function resetForm(){
 }
 /* Init */
 document.addEventListener('DOMContentLoaded',function(){
-  ge('today').textContent=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
-  // Lire ?d= (directeur) ou ?r= (RH) dans l'URL
+  // Lire ?d= (directeur) ou ?r= (RH) dans l'URL.
+  // Nouveau format : cle courte -> recuperation du payload cote serveur (n8n).
+  // Ancien format (compatibilite avec des liens deja envoyes avant l'activation des liens courts) : JSON encode directement dans l'URL, lu en local.
   var search=window.location.search;
+  var pending=0;
+  function maybeInitPage(){ if(pending<=0) initPage(); }
+  function estAncienFormat(raw){ return raw.indexOf('%7B')===0||raw.indexOf('{')===0; }
   if(search){
     var m=search.match(/[?&]d=([^&]*)/);
-    if(m){var decoded=decodeHash(m[1]);if(decoded&&decoded.nom)_md=decoded;}
+    if(m){
+      var rawD=m[1];
+      if(estAncienFormat(rawD)){
+        var decoded=decodeHash(rawD);if(decoded&&decoded.nom)_md=decoded;
+      } else {
+        pending++;
+        fetch(LIENCOURT_GET+'?id='+encodeURIComponent(rawD)).then(function(r){return r.json();})
+          .then(function(res){if(res&&res.ok&&res.data&&res.data.nom)_md=res.data;})
+          .catch(function(){})
+          .then(function(){pending--;maybeInitPage();});
+      }
+    }
     var mr=search.match(/[?&]r=([^&]*)/);
-    if(mr){try{_rh=JSON.parse(decodeURIComponent(mr[1]));}catch(e){_rh=null;}}
+    if(mr){
+      var rawR=mr[1];
+      if(estAncienFormat(rawR)){
+        try{_rh=JSON.parse(decodeURIComponent(rawR));}catch(e){_rh=null;}
+      } else {
+        pending++;
+        fetch(LIENCOURT_GET+'?id='+encodeURIComponent(rawR)).then(function(r){return r.json();})
+          .then(function(res){if(res&&res.ok&&res.data)_rh=res.data;})
+          .catch(function(){})
+          .then(function(){pending--;maybeInitPage();});
+      }
+    }
   }
+  maybeInitPage();
+});
+function initPage(){
+  ge('today').textContent=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
   // Mode RH : affichage lecture seule + bouton télécharger PDF
   if(_rh&&_rh.mode==='rh'){
     ge('banner').className='banner bd2';
@@ -1430,7 +1417,7 @@ document.addEventListener('DOMContentLoaded',function(){
     // Mode collaborateur — SVG interactif (jamais noir sur iOS)
     initSvgSign(0);
   }
-});
+}
 
 </script>
 <div id="rhAdjBox" style="display:none;max-width:900px;margin:10px auto 6px;background:#fff;border:2px solid var(--g);border-radius:8px;padding:14px 20px;box-shadow:0 4px 16px rgba(0,0,0,.1)">
