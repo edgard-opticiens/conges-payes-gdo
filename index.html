@@ -928,7 +928,8 @@ function _ouvrirMailDir(data,dirUrl){
         type:(data.cp&&data.cp.on?'CP':'')+(data.abs&&data.abs.on?(data.cp&&data.cp.on?'+':'')+'ABS':''),
         date_debut:(data.cp&&data.cp.d)||(data.abs&&data.abs.d)||'',
         date_fin:(data.cp&&data.cp.f)||(data.abs&&data.abs.f)||'',
-        etape:'directeur',statut:'en_attente',en_attente_nom:'Directeur',en_attente_email:emails.join(', '),lien:dirUrl});
+        etape:'directeur',statut:'en_attente',en_attente_nom:'Directeur',en_attente_email:emails.join(', '),lien:dirUrl,
+        annuleRemplace:data.annuleRemplace||null});
       congesMarquerDualSiBesoin(emails,data);
     });
   }
