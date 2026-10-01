@@ -362,7 +362,10 @@ function logRHValide(){
     date_debut:(_rh.cp&&_rh.cp.d)||(_rh.abs&&_rh.abs.d)||'',
     date_fin:(_rh.cp&&_rh.cp.f)||(_rh.abs&&_rh.abs.f)||'',
     etape:'termine',statut:'valide',
-    en_attente_nom:'',en_attente_email:'',lien:''
+    // On conserve le lien de cette page (celle que RH vient d'ouvrir pour valider/
+    // télécharger) au lieu de l'effacer, pour pouvoir reconsulter la demande
+    // archivée plus tard depuis le tableau de bord RH.
+    en_attente_nom:'',en_attente_email:'',lien:location.href
   });
 }
 function fNow(){var d=new Date();return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'})+' a '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}
