@@ -301,7 +301,17 @@ body{background:#fff;padding:0;}
 
 /* Utilitaires */
 function ge(i){return document.getElementById(i)}
-function gv(i){var e=ge(i);return e?e.value:''}
+/* Normalisation obligatoire : NOM en majuscules, Prenom en minuscules avec initiale en majuscule (Jean-Pierre, Marie Claire) */
+function fixNom(v){return String(v||'').replace(/\s+/g,' ').trim().toLocaleUpperCase('fr')}
+function fixPrenom(v){return String(v||'').replace(/\s+/g,' ').trim().toLocaleLowerCase('fr').replace(/(^|[\s\-'’])(\S)/g,function(m,a,b){return a+b.toLocaleUpperCase('fr')})}
+function gv(i){var e=ge(i);var v=e?e.value:'';if(i==='nom')return fixNom(v);if(i==='prenom')return fixPrenom(v);return v}
+document.addEventListener('DOMContentLoaded',function(){
+  [['nom',function(v){return String(v).toLocaleUpperCase('fr')}],['prenom',function(v){return String(v).toLocaleLowerCase('fr').replace(/(^|[\s\-'’])(\S)/g,function(m,a,b){return a+b.toLocaleUpperCase('fr')})}]].forEach(function(p){
+    var el=ge(p[0]);if(!el)return;
+    el.addEventListener('input',function(){var s=el.selectionStart,nv=p[1](el.value);if(nv!==el.value){el.value=nv;try{el.setSelectionRange(s,s)}catch(e){}}});
+    el.addEventListener('blur',function(){el.value=p[0]==='nom'?fixNom(el.value):fixPrenom(el.value)});
+  });
+});
 function fD(iso){if(!iso)return'-';var p=iso.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:iso}
 function subjInfo(d){
   if(!d)return'';
