@@ -1080,12 +1080,46 @@ var EMAIL_PRENOMS={
   'n.hallereau@groupe-edgard.com':'Nadège',
   'j.deruy@groupe-edgard.com':'Julien'
 };
+/* Garde-fous "envoyer aux RH" rendus visibles : avant, un champ manquant se
+   contentait d'un toast de 3.5s facile a manquer et le clic ne faisait RIEN
+   d'autre (aucun appel reseau) — c'est ce qui causait des demandes bloquees
+   en silence a l'etape "signature directeur" sans que personne ne le voie. */
+function flagField(id,msg){
+  var el=ge(id);
+  if(el){
+    el.style.borderBottomColor='#D9534F';el.style.borderBottomWidth='2.5px';
+    try{el.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
+    try{el.focus();}catch(e){}
+    setTimeout(function(){el.style.borderBottomColor='';el.style.borderBottomWidth='';},6000);
+  }
+  toast(msg,6000);
+}
+function flagDecision(msg){
+  document.querySelectorAll('input[name="dec"]').forEach(function(r){
+    var lbl=r.closest('.ri');
+    if(lbl){lbl.style.color='#D9534F';lbl.style.fontWeight='700';
+      setTimeout(function(){lbl.style.color='';lbl.style.fontWeight='';},6000);}
+  });
+  try{document.querySelector('input[name="dec"]').closest('.rrow').scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
+  toast(msg,6000);
+}
+function flagSignatureR(msg){
+  var area=ge('sigRArea');
+  if(area){
+    area.style.outline='2.5px solid #D9534F';area.style.outlineOffset='-2px';
+    try{area.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
+    setTimeout(function(){area.style.outline='';},6000);
+  }
+  toast(msg,6000);
+}
 async function doSendRH(){
   var d=_md||{nom:gv('nom'),prenom:gv('prenom'),societe:gv('societe')};
   var dn=gv('dirNom'),dp=gv('dirPrenom');
-  if(!dn||!dn.trim()||!dp||!dp.trim()){toast('Saisissez le nom et prenom du responsable');return;}
+  if(!dn||!dn.trim()){flagField('dirNom','⚠️ Indiquez le NOM du responsable avant d\'envoyer aux RH');return;}
+  if(!dp||!dp.trim()){flagField('dirPrenom','⚠️ Indiquez le PRENOM du responsable avant d\'envoyer aux RH');return;}
   var dec=(document.querySelector('input[name="dec"]:checked')||{}).value||'';
-  if(!dec){toast('Cochez Autorise ou Refus');return;}
+  if(!dec){flagDecision('⚠️ Cochez "Autorise le conge" ou "Refus" avant d\'envoyer aux RH');return;}
+  if(isEmptyR()){flagSignatureR('⚠️ Signez dans le cadre "Signature du responsable" avant d\'envoyer aux RH');return;}
   var sig=(dp&&dn)?dp+' '+dn:'';
   if(_congesDual){
     fetch(CONGES_DUAL_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},
