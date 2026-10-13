@@ -333,8 +333,17 @@ function logToSheet(payload){
     .catch(function(){});
 }
 function makeId(d){
-  var debut=(d.cp&&d.cp.d)||(d.abs&&d.abs.d)||new Date().toISOString().slice(0,10);
-  return (d.societe||'')+'_'+(d.nom||'')+'_'+(d.prenom||'')+'_'+debut;
+  // IMPORTANT : on ne retient la date CP que si la section CP est reellement cochee (.on),
+  // sinon une valeur restee dans le champ date CP (jamais validee) peut l'emporter a tort
+  // sur la vraie date d'absence — c'est ce qui a cause la collision d'id TELLECHEA (Biarro)
+  // du 2026-10-12. Memes consequences cote GdO, meme correctif.
+  var debut=(d.cp&&d.cp.on&&d.cp.d)||(d.abs&&d.abs.on&&d.abs.d)||new Date().toISOString().slice(0,10);
+  var base=(d.societe||'')+'_'+(d.nom||'')+'_'+(d.prenom||'')+'_'+debut;
+  // Filet de securite supplementaire : nonce genere une seule fois a la creation de la
+  // demande (collect()) et transporte a travers toutes les etapes (directeur -> rh -> termine)
+  // pour garantir un id unique meme en cas de nouvelle collision de date. Les demandes deja
+  // en cours (sans nonce) gardent leur id d'origine, sans suffixe.
+  return d.nonce?(base+'_'+d.nonce):base;
 }
 
 /* ===================== ANTI DOUBLE-SIGNATURE Jerome/Romain ===================== */
@@ -369,8 +378,8 @@ function logRHValide(){
     id:makeId(_rh),
     societe:_rh.societe,nom:_rh.nom,prenom:_rh.prenom,
     type:(_rh.cp&&_rh.cp.on?'CP':'')+(_rh.abs&&_rh.abs.on?(_rh.cp&&_rh.cp.on?'+':'')+'ABS':''),
-    date_debut:(_rh.cp&&_rh.cp.d)||(_rh.abs&&_rh.abs.d)||'',
-    date_fin:(_rh.cp&&_rh.cp.f)||(_rh.abs&&_rh.abs.f)||'',
+    date_debut:(_rh.cp&&_rh.cp.on&&_rh.cp.d)||(_rh.abs&&_rh.abs.on&&_rh.abs.d)||'',
+    date_fin:(_rh.cp&&_rh.cp.on&&_rh.cp.f)||(_rh.abs&&_rh.abs.on&&_rh.abs.f)||'',
     etape:'termine',statut:'valide',
     // On conserve le lien de cette page (celle que RH vient d'ouvrir pour valider/
     // télécharger) au lieu de l'effacer, pour pouvoir reconsulter la demande
@@ -715,6 +724,10 @@ function collect(){
     cp:{on:isSec('CP'),d:gv('cpD'),f:gv('cpF'),n:ge('jrN').textContent,det:ge('jrD').textContent,signal:!!(ge('cpSignal')&&ge('cpSignal').checked),signalNote:gv('cpSignalNote')},
     abs:{on:isSec('ABS'),m:me?me.value:'',mL:me?me.closest('.mc').querySelector('label').textContent.trim():'',
       evtM:gv('evtM'),d:gv('absD'),f:gv('absF'),h:gv('absH'),j:gv('absJ')},
+    // Identifiant unique de cette demande, genere une seule fois a la creation et transporte
+    // tel quel a travers toutes les etapes (directeur -> rh -> termine) via rhData/rhDataPC
+    // et _rh — voir makeId().
+    nonce:(window.crypto&&crypto.randomUUID)?crypto.randomUUID().replace(/-/g,'').slice(0,10):(Date.now().toString(36)+Math.random().toString(36).slice(2,8)),
     sigC:cvJpeg('cvC',0.55),
     sigStrokes:cvStrokes('cvC')
   };
@@ -939,8 +952,8 @@ function _ouvrirMailDir(data,dirUrl){
         .catch(function(){unspin();toast('Erreur d\'envoi, reessayez');});
       logToSheet({id:makeId(data),date_creation:new Date().toISOString(),societe:data.societe,nom:data.nom,prenom:data.prenom,
         type:(data.cp&&data.cp.on?'CP':'')+(data.abs&&data.abs.on?(data.cp&&data.cp.on?'+':'')+'ABS':''),
-        date_debut:(data.cp&&data.cp.d)||(data.abs&&data.abs.d)||'',
-        date_fin:(data.cp&&data.cp.f)||(data.abs&&data.abs.f)||'',
+        date_debut:(data.cp&&data.cp.on&&data.cp.d)||(data.abs&&data.abs.on&&data.abs.d)||'',
+        date_fin:(data.cp&&data.cp.on&&data.cp.f)||(data.abs&&data.abs.on&&data.abs.f)||'',
         etape:'directeur',statut:'en_attente',en_attente_nom:'Directeur',en_attente_email:emails.join(', '),lien:dirUrl,
         annuleRemplace:data.annuleRemplace||null});
       congesMarquerDualSiBesoin(emails,data);
@@ -1137,7 +1150,7 @@ async function doSendRH(){
       mode:'rh',
       societe:d.societe,nom:d.nom,prenom:d.prenom,
       date:d.date,tsC:d.tsC,ville:d.ville||getCity(d.societe)||'',
-      cp:d.cp,abs:d.abs,
+      cp:d.cp,abs:d.abs,nonce:d.nonce||null,
       sigStrokes:d.sigStrokes||null,
       sigRStrokes:getSigRStrokes()||null,
       dirNom:dn,dirPrenom:dp,tsR:_tsR,dec:dec,refM:gv('refM'),
@@ -1153,7 +1166,7 @@ async function doSendRH(){
           .catch(function(){unspin();toast('Erreur d\'envoi, reessayez');});
         logToSheet({id:makeId(d),societe:d.societe,nom:d.nom,prenom:d.prenom,
           type:(d.cp&&d.cp.on?'CP':'')+(d.abs&&d.abs.on?(d.cp&&d.cp.on?'+':'')+'ABS':''),
-          date_debut:(d.cp&&d.cp.d)||(d.abs&&d.abs.d)||'',date_fin:(d.cp&&d.cp.f)||(d.abs&&d.abs.f)||'',
+          date_debut:(d.cp&&d.cp.on&&d.cp.d)||(d.abs&&d.abs.on&&d.abs.d)||'',date_fin:(d.cp&&d.cp.on&&d.cp.f)||(d.abs&&d.abs.on&&d.abs.f)||'',
           etape:'rh',statut:'en_attente',en_attente_nom:'RH',en_attente_email:emails.join(', '),lien:rhUrl});
       });
     });
@@ -1165,7 +1178,7 @@ async function doSendRH(){
     mode:'rh',
     societe:d.societe,nom:d.nom,prenom:d.prenom,
     date:d.date,tsC:d.tsC,ville:d.ville||getCity(d.societe)||'',
-    cp:d.cp,abs:d.abs,
+    cp:d.cp,abs:d.abs,nonce:d.nonce||null,
     sigStrokes:d.sigStrokes||null,
     sigRStrokes:getSigRStrokes()||null,
     dirNom:dn,dirPrenom:dp,tsR:_tsR,dec:dec,refM:gv('refM'),
@@ -1189,7 +1202,7 @@ async function doSendRH(){
           .catch(function(){unspin();toast('Erreur d\'envoi, reessayez');});
         logToSheet({id:makeId(d),societe:d.societe,nom:d.nom,prenom:d.prenom,
           type:(d.cp&&d.cp.on?'CP':'')+(d.abs&&d.abs.on?(d.cp&&d.cp.on?'+':'')+'ABS':''),
-          date_debut:(d.cp&&d.cp.d)||(d.abs&&d.abs.d)||'',date_fin:(d.cp&&d.cp.f)||(d.abs&&d.abs.f)||'',
+          date_debut:(d.cp&&d.cp.on&&d.cp.d)||(d.abs&&d.abs.on&&d.abs.d)||'',date_fin:(d.cp&&d.cp.on&&d.cp.f)||(d.abs&&d.abs.on&&d.abs.f)||'',
           etape:'rh',statut:'en_attente',en_attente_nom:'RH',en_attente_email:emails.join(', '),lien:rhUrl});
       });
     });
