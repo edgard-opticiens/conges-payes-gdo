@@ -404,6 +404,7 @@ function logRHValide(){
     type:(_rh.cp&&_rh.cp.on?'CP':'')+(_rh.abs&&_rh.abs.on?(_rh.cp&&_rh.cp.on?'+':'')+'ABS':''),
     date_debut:(_rh.cp&&_rh.cp.on&&_rh.cp.d)||(_rh.abs&&_rh.abs.on&&_rh.abs.d)||'',
     date_fin:(_rh.cp&&_rh.cp.on&&_rh.cp.f)||(_rh.abs&&_rh.abs.on&&_rh.abs.f)||'',
+    nb_jours:(_rh.cp&&_rh.cp.on&&_rh.cp.n)||(_rh.abs&&_rh.abs.on&&_rh.abs.j)||'',
     etape:'termine',statut:'valide',
     // On conserve le lien de cette page (celle que RH vient d'ouvrir pour valider/
     // télécharger) au lieu de l'effacer, pour pouvoir reconsulter la demande
@@ -976,6 +977,7 @@ function _ouvrirMailDir(data,dirUrl){
         type:(data.cp&&data.cp.on?'CP':'')+(data.abs&&data.abs.on?(data.cp&&data.cp.on?'+':'')+'ABS':''),
         date_debut:(data.cp&&data.cp.on&&data.cp.d)||(data.abs&&data.abs.on&&data.abs.d)||'',
         date_fin:(data.cp&&data.cp.on&&data.cp.f)||(data.abs&&data.abs.on&&data.abs.f)||'',
+        nb_jours:(data.cp&&data.cp.on&&data.cp.n)||(data.abs&&data.abs.on&&data.abs.j)||'',
         etape:'directeur',statut:'en_attente',en_attente_nom:'Directeur',en_attente_email:emails.join(', '),lien:dirUrl,
         annuleRemplace:data.annuleRemplace||null});
       congesMarquerDualSiBesoin(emails,data);
@@ -1190,6 +1192,7 @@ async function doSendRH(){
         logToSheet({id:makeId(d),societe:d.societe,nom:d.nom,prenom:d.prenom,
           type:(d.cp&&d.cp.on?'CP':'')+(d.abs&&d.abs.on?(d.cp&&d.cp.on?'+':'')+'ABS':''),
           date_debut:(d.cp&&d.cp.on&&d.cp.d)||(d.abs&&d.abs.on&&d.abs.d)||'',date_fin:(d.cp&&d.cp.on&&d.cp.f)||(d.abs&&d.abs.on&&d.abs.f)||'',
+          nb_jours:(d.cp&&d.cp.on&&d.cp.n)||(d.abs&&d.abs.on&&d.abs.j)||'',
           etape:'rh',statut:'en_attente',en_attente_nom:'RH',en_attente_email:emails.join(', '),lien:rhUrl});
       });
     });
@@ -1228,6 +1231,7 @@ async function doSendRH(){
         logToSheet({id:makeId(d),societe:d.societe,nom:d.nom,prenom:d.prenom,
           type:(d.cp&&d.cp.on?'CP':'')+(d.abs&&d.abs.on?(d.cp&&d.cp.on?'+':'')+'ABS':''),
           date_debut:(d.cp&&d.cp.on&&d.cp.d)||(d.abs&&d.abs.on&&d.abs.d)||'',date_fin:(d.cp&&d.cp.on&&d.cp.f)||(d.abs&&d.abs.on&&d.abs.f)||'',
+          nb_jours:(d.cp&&d.cp.on&&d.cp.n)||(d.abs&&d.abs.on&&d.abs.j)||'',
           etape:'rh',statut:'en_attente',en_attente_nom:'RH',en_attente_email:emails.join(', '),lien:rhUrl});
       });
     });
