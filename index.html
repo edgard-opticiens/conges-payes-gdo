@@ -331,10 +331,11 @@ function mailHeader(d){
 var BRAND={acc:'#00843D',accD:'#006B31',soft:'#E4F2E9',nom:'GÉNÉRALE D\'OPTIQUE',txt:'#ffffff'};
 function escHtmlCP(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function infoRowCP(l,v){return '<tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;width:150px;">'+l+'</td><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1A1A1A;font-weight:700;">'+v+'</td></tr>';}
-function mailBodyHtmlCP(eyebrow,titre,texte,d,link,ctaLabel){
+function mailBodyHtmlCP(eyebrow,titre,texte,d,link,ctaLabel,extra){
   var rows=infoRowCP('Collaborateur',escHtmlCP((d.prenom||'')+' '+(d.nom||'').toUpperCase()))+
     (d.societe?infoRowCP('Société',escHtmlCP(d.societe)):'')+
-    (subjInfo(d)?infoRowCP('Demande',escHtmlCP(subjInfo(d).replace(/^ - /,''))):'');
+    (subjInfo(d)?infoRowCP('Demande',escHtmlCP(subjInfo(d).replace(/^ - /,''))):'')+
+    (extra||'');
   var href=escHtmlCP(link);
   return ' <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F2EFE8;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;"><tr><td align="center">'+
    '<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:10px;overflow:hidden;">'+
@@ -1157,6 +1158,9 @@ async function doSendRH(){
   var dec=(document.querySelector('input[name="dec"]:checked')||{}).value||'';
   if(!dec){flagDecision('⚠️ Cochez "Autorise le conge" ou "Refus" avant d\'envoyer aux RH');return;}
   if(isEmptyR()){flagSignatureR('⚠️ Signez dans le cadre "Signature du responsable" avant d\'envoyer aux RH');return;}
+  var decOk=dec==='oui';
+  var decLabel=decOk?'Accordée':'Refusée';
+  var extraRowMail=(!decOk&&gv('refM'))?infoRowCP('Motif du refus',escHtmlCP(gv('refM'))):'';
   var sig=(dp&&dn)?dp+' '+dn:'';
   if(_congesDual){
     fetch(CONGES_DUAL_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},
@@ -1166,7 +1170,7 @@ async function doSendRH(){
   var prefillRH=['ressources-humaines@groupe-edgard.com'];
   if(rhMail&&rhMail!=='ressources-humaines@groupe-edgard.com')prefillRH.push(rhMail);
   var hdr=mailHeader(d);
-  var subj='[RH] '+hdr;
+  var subj='[RH]['+decLabel+'] '+hdr;
   if(_isIOS){
     spin('Generation du lien...');
     var rhData={
@@ -1181,9 +1185,9 @@ async function doSendRH(){
     };
     creerLienCourt('r',rhData,function(rhUrl){
       unspin();
-      var body2=mailBodyHtmlCP('Congés & absences','Demande signée',
-        'La demande de congés/absence est <strong>signée</strong> (collaborateur + directeur). Merci de télécharger le PDF définitif.',
-        d,rhUrl,'Télécharger le PDF →');
+      var body2=mailBodyHtmlCP('Congés & absences',decOk?'Demande acceptée':'Demande refusée',
+        'La demande de congés/absence a été <strong>'+(decOk?'acceptée':'refusée')+'</strong> par le responsable (collaborateur + directeur). Merci de télécharger le PDF définitif.',
+        d,rhUrl,'Télécharger le PDF →',extraRowMail);
       openEmailModal('Envoyer aux RH',prefillRH,function(emails){
         spin('Envoi en cours...');
         sendMailSilent({to:emails[0],cc:emails.slice(1),subject:subj,body:body2})
@@ -1220,9 +1224,9 @@ async function doSendRH(){
         document.body.appendChild(a2);a2.click();document.body.removeChild(a2);
         setTimeout(function(){URL.revokeObjectURL(burl);},3000);
       }
-      var bodyPC=mailBodyHtmlCP('Congés & absences','Demande signée',
-        'La demande de congés/absence est <strong>signée</strong> (collaborateur + directeur). Le PDF définitif est joint ; vous pouvez aussi consulter la demande via ce lien.',
-        d,rhUrl,'Consulter la demande →');
+      var bodyPC=mailBodyHtmlCP('Congés & absences',decOk?'Demande acceptée':'Demande refusée',
+        'La demande de congés/absence a été <strong>'+(decOk?'acceptée':'refusée')+'</strong> par le responsable (collaborateur + directeur). Le PDF définitif est joint ; vous pouvez aussi consulter la demande via ce lien.',
+        d,rhUrl,'Consulter la demande →',extraRowMail);
       openEmailModal('Envoyer aux RH',prefillRH,function(emails){
         spin('Envoi en cours...');
         sendMailSilent({to:emails[0],cc:emails.slice(1),subject:subj,body:bodyPC})
