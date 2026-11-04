@@ -359,7 +359,7 @@ function logToSheet(payload){
   fetch(N8N_LOG,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
     .catch(function(){});
 }
-function logMotif(d){if(!(d.abs&&d.abs.on))return'';var lbl=(d.abs.mL||'').replace(/^[^\w]*/,'').trim();return lbl+(d.abs.evtM?(' — '+d.abs.evtM):'');}
+function logMotif(d){if(!(d.abs&&d.abs.on))return'';var SM={evt:'Evt Fam',dec:'Décès',rev:'Congé révision',css:'CSS',anr:'ANR',rtt:'RTT'};return SM[d.abs.m]||(d.abs.mL||'').replace(/^[^\w]*/,'').trim();}
 function makeId(d){
   // IMPORTANT : on ne retient la date CP que si la section CP est reellement cochee (.on),
   // sinon une valeur restee dans le champ date CP (jamais validee) peut l'emporter a tort
