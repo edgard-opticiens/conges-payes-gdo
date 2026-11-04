@@ -332,7 +332,6 @@ function mailHeader(d){
 /* ---------- Mail habillé (HTML, ajouté le 2026-10-20 — même habillage que heures sup/NDF) ---------- */
 var BRAND={acc:'#00843D',accD:'#006B31',soft:'#E4F2E9',nom:'GÉNÉRALE D\'OPTIQUE',txt:'#ffffff'};
 var REFUS_ACCENT={acc:'#D9534F',accD:'#B23A3A',soft:'#FBEAEA',txt:'#ffffff',titre:'#B23A3A'};
-var PORTAL_URL='https://edgard-opticiens.github.io/portail-rh-gdo/';
 function escHtmlCP(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function infoRowCP(l,v){return '<tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;width:150px;">'+l+'</td><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1A1A1A;font-weight:700;">'+v+'</td></tr>';}
 function mailBodyHtmlCP(eyebrow,titre,texte,d,link,ctaLabel,extra,accent){
@@ -1038,8 +1037,9 @@ async function genPDF(asBlob){
   bCP.classList.add('open');bAB.classList.add('open');
   var sh=ge('shield');if(sh)sh.style.display='none';
   // Masquer panneaux ajustement RH
-  var adjPanels=[ge('rhAdjBox'),ge('rhAdjBoxAbs'),ge('collabEmailBlk')];
+  var adjPanels=[ge('rhAdjBox'),ge('rhAdjBoxAbs')];
   adjPanels.forEach(function(el){if(el)el.style.visibility='hidden'});
+  var emB=ge('collabEmailBlk');var emBd=emB?emB.style.display:null;if(emB)emB.style.display='none';
   // Masquer l'overlay iOS s'il est présent
   var iosOverlay=document.getElementById('ios-rh-overlay');
   if(iosOverlay)iosOverlay.style.display='none';
@@ -1070,6 +1070,7 @@ async function genPDF(asBlob){
   // Restaurer
   document.querySelectorAll('.modal,#toast,#sp').forEach(function(el){el.style.visibility='';});
   adjPanels.forEach(function(el){if(el)el.style.visibility=''});
+  if(emB)emB.style.display=emBd||'';
   if(iosOverlay)iosOverlay.style.display='';
   if(!wCP)bCP.classList.remove('open');if(!wAB)bAB.classList.remove('open');
   if(sh)sh.style.display='none';
@@ -1204,7 +1205,7 @@ async function doSendRH(){
           var subjCollab=(decOk?'Votre demande de congés a été acceptée':'Votre demande de congés a été refusée')+' — '+hdr;
           var bodyCollab=mailBodyHtmlCP('Congés & absences',decOk?'Votre demande a été acceptée':'Votre demande a été refusée',
             'Votre demande de congés/absence a été <strong>'+(decOk?'acceptée':'refusée')+'</strong> par votre responsable.',
-            d,PORTAL_URL,'Ouvrir le portail RH →',extraRowMail,decOk?null:REFUS_ACCENT);
+            d,rhUrl,'Consulter la demande →',extraRowMail,decOk?null:REFUS_ACCENT);
           sendMailSilent({to:d.email,subject:subjCollab,body:bodyCollab}).catch(function(){});
         }
         logToSheet({id:makeId(d),societe:d.societe,nom:d.nom,prenom:d.prenom,
@@ -1250,7 +1251,7 @@ async function doSendRH(){
           var subjCollab=(decOk?'Votre demande de congés a été acceptée':'Votre demande de congés a été refusée')+' — '+hdr;
           var bodyCollab=mailBodyHtmlCP('Congés & absences',decOk?'Votre demande a été acceptée':'Votre demande a été refusée',
             'Votre demande de congés/absence a été <strong>'+(decOk?'acceptée':'refusée')+'</strong> par votre responsable.',
-            d,PORTAL_URL,'Ouvrir le portail RH →',extraRowMail,decOk?null:REFUS_ACCENT);
+            d,rhUrl,'Consulter la demande →',extraRowMail,decOk?null:REFUS_ACCENT);
           sendMailSilent({to:d.email,subject:subjCollab,body:bodyCollab}).catch(function(){});
         }
         logToSheet({id:makeId(d),societe:d.societe,nom:d.nom,prenom:d.prenom,
