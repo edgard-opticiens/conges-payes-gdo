@@ -359,6 +359,7 @@ function logToSheet(payload){
   fetch(N8N_LOG,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
     .catch(function(){});
 }
+function logMotif(d){if(!(d.abs&&d.abs.on))return'';var lbl=(d.abs.mL||'').replace(/^[^\w]*/,'').trim();return lbl+(d.abs.evtM?(' — '+d.abs.evtM):'');}
 function makeId(d){
   // IMPORTANT : on ne retient la date CP que si la section CP est reellement cochee (.on),
   // sinon une valeur restee dans le champ date CP (jamais validee) peut l'emporter a tort
@@ -404,7 +405,7 @@ function logRHValide(){
   logToSheet({
     id:makeId(_rh),
     societe:_rh.societe,nom:_rh.nom,prenom:_rh.prenom,
-    type:(_rh.cp&&_rh.cp.on?'CP':'')+(_rh.abs&&_rh.abs.on?(_rh.cp&&_rh.cp.on?'+':'')+'ABS':''),
+    type:(_rh.cp&&_rh.cp.on?'CP':'')+(_rh.abs&&_rh.abs.on?(_rh.cp&&_rh.cp.on?'+':'')+'ABS':''),motif:logMotif(_rh),
     date_debut:(_rh.cp&&_rh.cp.on&&_rh.cp.d)||(_rh.abs&&_rh.abs.on&&_rh.abs.d)||'',
     date_fin:(_rh.cp&&_rh.cp.on&&_rh.cp.f)||(_rh.abs&&_rh.abs.on&&_rh.abs.f)||'',
     nb_jours:(_rh.cp&&_rh.cp.on&&_rh.cp.n)||(_rh.abs&&_rh.abs.on&&_rh.abs.j)||'',
@@ -977,7 +978,7 @@ function _ouvrirMailDir(data,dirUrl){
         .then(function(){unspin();toast('Demande envoyee au directeur');})
         .catch(function(){unspin();toast('Erreur d\'envoi, reessayez');});
       logToSheet({id:makeId(data),date_creation:new Date().toISOString(),societe:data.societe,nom:data.nom,prenom:data.prenom,
-        type:(data.cp&&data.cp.on?'CP':'')+(data.abs&&data.abs.on?(data.cp&&data.cp.on?'+':'')+'ABS':''),
+        type:(data.cp&&data.cp.on?'CP':'')+(data.abs&&data.abs.on?(data.cp&&data.cp.on?'+':'')+'ABS':''),motif:logMotif(data),
         date_debut:(data.cp&&data.cp.on&&data.cp.d)||(data.abs&&data.abs.on&&data.abs.d)||'',
         date_fin:(data.cp&&data.cp.on&&data.cp.f)||(data.abs&&data.abs.on&&data.abs.f)||'',
         nb_jours:(data.cp&&data.cp.on&&data.cp.n)||(data.abs&&data.abs.on&&data.abs.j)||'',
@@ -1196,7 +1197,7 @@ async function doSendRH(){
           .then(function(){unspin();toast('Demande envoyee aux RH');})
           .catch(function(){unspin();toast('Erreur d\'envoi, reessayez');});
         logToSheet({id:makeId(d),societe:d.societe,nom:d.nom,prenom:d.prenom,
-          type:(d.cp&&d.cp.on?'CP':'')+(d.abs&&d.abs.on?(d.cp&&d.cp.on?'+':'')+'ABS':''),
+          type:(d.cp&&d.cp.on?'CP':'')+(d.abs&&d.abs.on?(d.cp&&d.cp.on?'+':'')+'ABS':''),motif:logMotif(d),
           date_debut:(d.cp&&d.cp.on&&d.cp.d)||(d.abs&&d.abs.on&&d.abs.d)||'',date_fin:(d.cp&&d.cp.on&&d.cp.f)||(d.abs&&d.abs.on&&d.abs.f)||'',
           nb_jours:(d.cp&&d.cp.on&&d.cp.n)||(d.abs&&d.abs.on&&d.abs.j)||'',
           etape:'rh',statut:'en_attente',en_attente_nom:'RH',en_attente_email:emails.join(', '),lien:rhUrl});
@@ -1235,7 +1236,7 @@ async function doSendRH(){
           .then(function(){unspin();toast('Demande envoyee aux RH');})
           .catch(function(){unspin();toast('Erreur d\'envoi, reessayez');});
         logToSheet({id:makeId(d),societe:d.societe,nom:d.nom,prenom:d.prenom,
-          type:(d.cp&&d.cp.on?'CP':'')+(d.abs&&d.abs.on?(d.cp&&d.cp.on?'+':'')+'ABS':''),
+          type:(d.cp&&d.cp.on?'CP':'')+(d.abs&&d.abs.on?(d.cp&&d.cp.on?'+':'')+'ABS':''),motif:logMotif(d),
           date_debut:(d.cp&&d.cp.on&&d.cp.d)||(d.abs&&d.abs.on&&d.abs.d)||'',date_fin:(d.cp&&d.cp.on&&d.cp.f)||(d.abs&&d.abs.on&&d.abs.f)||'',
           nb_jours:(d.cp&&d.cp.on&&d.cp.n)||(d.abs&&d.abs.on&&d.abs.j)||'',
           etape:'rh',statut:'en_attente',en_attente_nom:'RH',en_attente_email:emails.join(', '),lien:rhUrl});
