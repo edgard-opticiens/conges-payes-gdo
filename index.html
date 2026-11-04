@@ -111,6 +111,7 @@ body{background:#fff;padding:0;}
 .sec-body{display:block!important}
 .shield{display:none!important}
 #rhAdjBox,#rhAdjBoxAbs{display:none!important}
+#collabEmailBlk{display:none!important}
 #sigCArea,#sigRArea{background:#fff!important;min-height:90px;}
 #sigCArea svg,#sigRArea svg{background:#fff!important;}
 #sigCArea svg rect,#sigRArea svg rect{fill:#fff!important;}
@@ -203,7 +204,7 @@ body{background:#fff;padding:0;}
       <div class="fg"><label class="lbl">Nom</label><input class="inp" type="text" id="nom" placeholder="Nom de famille" autocomplete="off"></div>
       <div class="fg"><label class="lbl">Prenom</label><input class="inp" type="text" id="prenom" placeholder="Prenom" autocomplete="off"></div>
     </div>
-    <div class="fg" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)"><label class="lbl">Email personnel</label><input class="inp" type="email" id="collabEmail" placeholder="vous@exemple.fr" autocomplete="off"><div style="font-size:10px;color:var(--md);margin-top:4px;font-weight:500">Pour recevoir par email la confirmation (acceptée ou refusée) de votre demande de congés/absence.</div></div>
+    <div class="fg" id="collabEmailBlk" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)"><label class="lbl">Email personnel</label><input class="inp" type="email" id="collabEmail" placeholder="vous@exemple.fr" autocomplete="off"><div style="font-size:10px;color:var(--md);margin-top:4px;font-weight:500">Pour recevoir par email la confirmation (acceptée ou refusée) de votre demande de congés/absence.</div></div>
     <div class="sec" id="secCP">
       <button type="button" class="sec-hdr" onclick="togSec('CP')">
         <div class="ck" id="ckCP"></div>
@@ -1037,7 +1038,7 @@ async function genPDF(asBlob){
   bCP.classList.add('open');bAB.classList.add('open');
   var sh=ge('shield');if(sh)sh.style.display='none';
   // Masquer panneaux ajustement RH
-  var adjPanels=[ge('rhAdjBox'),ge('rhAdjBoxAbs')];
+  var adjPanels=[ge('rhAdjBox'),ge('rhAdjBoxAbs'),ge('collabEmailBlk')];
   adjPanels.forEach(function(el){if(el)el.style.visibility='hidden'});
   // Masquer l'overlay iOS s'il est présent
   var iosOverlay=document.getElementById('ios-rh-overlay');
