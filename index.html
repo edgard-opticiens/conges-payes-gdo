@@ -203,6 +203,7 @@ body{background:#fff;padding:0;}
       <div class="fg"><label class="lbl">Nom</label><input class="inp" type="text" id="nom" placeholder="Nom de famille" autocomplete="off"></div>
       <div class="fg"><label class="lbl">Prenom</label><input class="inp" type="text" id="prenom" placeholder="Prenom" autocomplete="off"></div>
     </div>
+    <div class="fg" style="margin-top:8px"><label class="lbl">Email personnel</label><input class="inp" type="email" id="collabEmail" placeholder="vous@exemple.fr" autocomplete="off"></div>
     <div class="sec" id="secCP">
       <button type="button" class="sec-hdr" onclick="togSec('CP')">
         <div class="ck" id="ckCP"></div>
@@ -330,6 +331,7 @@ function mailHeader(d){
 /* ---------- Mail habillé (HTML, ajouté le 2026-10-20 — même habillage que heures sup/NDF) ---------- */
 var BRAND={acc:'#00843D',accD:'#006B31',soft:'#E4F2E9',nom:'GÉNÉRALE D\'OPTIQUE',txt:'#ffffff'};
 var REFUS_ACCENT={acc:'#D9534F',accD:'#B23A3A',soft:'#FBEAEA',txt:'#ffffff',titre:'#B23A3A'};
+var PORTAL_URL='https://edgard-opticiens.github.io/portail-rh-gdo/';
 function escHtmlCP(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function infoRowCP(l,v){return '<tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;width:150px;">'+l+'</td><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1A1A1A;font-weight:700;">'+v+'</td></tr>';}
 function mailBodyHtmlCP(eyebrow,titre,texte,d,link,ctaLabel,extra,accent){
@@ -747,7 +749,7 @@ function collect(){
   var me=document.querySelector('input[name="motif"]:checked');
   return{
     societe:gv('societe'),ville:getCity(gv('societe')),
-    nom:gv('nom'),prenom:gv('prenom'),
+    nom:gv('nom'),prenom:gv('prenom'),email:gv('collabEmail'),
     annuleRemplace:getARData(),
     date:ge('today').textContent,tsC:_tsC,
     cp:{on:isSec('CP'),d:gv('cpD'),f:gv('cpF'),n:ge('jrN').textContent,det:ge('jrD').textContent,signal:!!(ge('cpSignal')&&ge('cpSignal').checked),signalNote:gv('cpSignalNote')},
@@ -865,6 +867,7 @@ function creerLienCourt(paramName,payloadObj,cb){
 function doSendDir(){
   if(!gv('societe')){toast('Selectionnez votre societe');return}
   if(!gv('nom').trim()||!gv('prenom').trim()){toast('Saisissez votre nom et prenom');return}
+  if(!gv('collabEmail').trim()||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(gv('collabEmail').trim())){toast('Saisissez votre email personnel (valide)');return}
   if(!isSec('CP')&&!isSec('ABS')){toast('Cochez au moins un type de demande');return}
   if(isSec('ABS')&&(!gv('absH').trim()||!gv('absJ').trim())){toast('Saisissez les heures et le nombre de jours d\'absence');return}
   if(isEmpty('cvC')){toast('Apposez votre signature');return}
@@ -1196,6 +1199,13 @@ async function doSendRH(){
         sendMailSilent({to:emails[0],cc:emails.slice(1),subject:subj,body:body2})
           .then(function(){unspin();toast('Demande envoyee aux RH');})
           .catch(function(){unspin();toast('Erreur d\'envoi, reessayez');});
+        if(d.email){
+          var subjCollab=(decOk?'Votre demande de congés a été acceptée':'Votre demande de congés a été refusée')+' — '+hdr;
+          var bodyCollab=mailBodyHtmlCP('Congés & absences',decOk?'Votre demande a été acceptée':'Votre demande a été refusée',
+            'Votre demande de congés/absence a été <strong>'+(decOk?'acceptée':'refusée')+'</strong> par votre responsable.',
+            d,PORTAL_URL,'Ouvrir le portail RH →',extraRowMail,decOk?null:REFUS_ACCENT);
+          sendMailSilent({to:d.email,subject:subjCollab,body:bodyCollab}).catch(function(){});
+        }
         logToSheet({id:makeId(d),societe:d.societe,nom:d.nom,prenom:d.prenom,
           type:(d.cp&&d.cp.on?'CP':'')+(d.abs&&d.abs.on?(d.cp&&d.cp.on?'+':'')+'ABS':''),motif:logMotif(d),
           date_debut:(d.cp&&d.cp.on&&d.cp.d)||(d.abs&&d.abs.on&&d.abs.d)||'',date_fin:(d.cp&&d.cp.on&&d.cp.f)||(d.abs&&d.abs.on&&d.abs.f)||'',
@@ -1235,6 +1245,13 @@ async function doSendRH(){
         sendMailSilent({to:emails[0],cc:emails.slice(1),subject:subj,body:bodyPC})
           .then(function(){unspin();toast('Demande envoyee aux RH');})
           .catch(function(){unspin();toast('Erreur d\'envoi, reessayez');});
+        if(d.email){
+          var subjCollab=(decOk?'Votre demande de congés a été acceptée':'Votre demande de congés a été refusée')+' — '+hdr;
+          var bodyCollab=mailBodyHtmlCP('Congés & absences',decOk?'Votre demande a été acceptée':'Votre demande a été refusée',
+            'Votre demande de congés/absence a été <strong>'+(decOk?'acceptée':'refusée')+'</strong> par votre responsable.',
+            d,PORTAL_URL,'Ouvrir le portail RH →',extraRowMail,decOk?null:REFUS_ACCENT);
+          sendMailSilent({to:d.email,subject:subjCollab,body:bodyCollab}).catch(function(){});
+        }
         logToSheet({id:makeId(d),societe:d.societe,nom:d.nom,prenom:d.prenom,
           type:(d.cp&&d.cp.on?'CP':'')+(d.abs&&d.abs.on?(d.cp&&d.cp.on?'+':'')+'ABS':''),motif:logMotif(d),
           date_debut:(d.cp&&d.cp.on&&d.cp.d)||(d.abs&&d.abs.on&&d.abs.d)||'',date_fin:(d.cp&&d.cp.on&&d.cp.f)||(d.abs&&d.abs.on&&d.abs.f)||'',
