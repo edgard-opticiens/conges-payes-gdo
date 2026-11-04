@@ -329,9 +329,11 @@ function mailHeader(d){
 }
 /* ---------- Mail habillé (HTML, ajouté le 2026-10-20 — même habillage que heures sup/NDF) ---------- */
 var BRAND={acc:'#00843D',accD:'#006B31',soft:'#E4F2E9',nom:'GÉNÉRALE D\'OPTIQUE',txt:'#ffffff'};
+var REFUS_ACCENT={acc:'#D9534F',accD:'#B23A3A',soft:'#FBEAEA',txt:'#ffffff',titre:'#B23A3A'};
 function escHtmlCP(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function infoRowCP(l,v){return '<tr><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;width:150px;">'+l+'</td><td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1A1A1A;font-weight:700;">'+v+'</td></tr>';}
-function mailBodyHtmlCP(eyebrow,titre,texte,d,link,ctaLabel,extra){
+function mailBodyHtmlCP(eyebrow,titre,texte,d,link,ctaLabel,extra,accent){
+  var AC=accent||{acc:BRAND.acc,accD:BRAND.accD,soft:BRAND.soft,txt:BRAND.txt,titre:'#1A1A1A'};
   var rows=infoRowCP('Collaborateur',escHtmlCP((d.prenom||'')+' '+(d.nom||'').toUpperCase()))+
     (d.societe?infoRowCP('Société',escHtmlCP(d.societe)):'')+
     (subjInfo(d)?infoRowCP('Demande',escHtmlCP(subjInfo(d).replace(/^ - /,''))):'')+
@@ -339,15 +341,15 @@ function mailBodyHtmlCP(eyebrow,titre,texte,d,link,ctaLabel,extra){
   var href=escHtmlCP(link);
   return ' <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F2EFE8;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;"><tr><td align="center">'+
    '<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:10px;overflow:hidden;">'+
-   '<tr><td style="background:'+BRAND.acc+';padding:20px 32px;"><span style="font-family:Georgia,\'Times New Roman\',serif;color:'+BRAND.txt+';font-size:20px;font-weight:700;letter-spacing:.03em;">'+BRAND.nom+'</span>'+
-   '<span style="font-family:Arial,Helvetica,sans-serif;color:'+BRAND.txt+';opacity:.85;font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-left:10px;">Ressources Humaines</span></td></tr>'+
+   '<tr><td style="background:'+AC.acc+';padding:20px 32px;"><span style="font-family:Georgia,\'Times New Roman\',serif;color:'+AC.txt+';font-size:20px;font-weight:700;letter-spacing:.03em;">'+BRAND.nom+'</span>'+
+   '<span style="font-family:Arial,Helvetica,sans-serif;color:'+AC.txt+';opacity:.85;font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-left:10px;">Ressources Humaines</span></td></tr>'+
    '<tr><td style="padding:32px 32px 28px;">'+
-   '<p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:'+BRAND.accD+';">'+eyebrow+'</p>'+
-   '<h1 style="margin:0 0 16px;font-family:Georgia,\'Times New Roman\',serif;font-size:22px;font-weight:700;color:#1A1A1A;">'+titre+'</h1>'+
+   '<p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:'+AC.accD+';">'+eyebrow+'</p>'+
+   '<h1 style="margin:0 0 16px;font-family:Georgia,\'Times New Roman\',serif;font-size:22px;font-weight:700;color:'+AC.titre+';">'+titre+'</h1>'+
    '<p style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#333333;">'+texte+'</p>'+
-   '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:'+BRAND.soft+';border-radius:8px;padding:10px 14px;margin:6px 0 0;"><tr><td style="padding:8px 14px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">'+rows+'</table></td></tr></table>'+
-   '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:26px 0 6px;"><tr><td bgcolor="'+BRAND.acc+'" style="border-radius:6px;"><a href="'+href+'" style="display:inline-block;padding:13px 26px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;color:'+BRAND.txt+';text-decoration:none;">'+ctaLabel+'</a></td></tr></table>'+
-   '<p style="margin:8px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#999999;">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur&nbsp;:<br><a href="'+href+'" style="color:'+BRAND.accD+';word-break:break-all;">'+href+'</a></p>'+
+   '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:'+AC.soft+';border-radius:8px;padding:10px 14px;margin:6px 0 0;"><tr><td style="padding:8px 14px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">'+rows+'</table></td></tr></table>'+
+   '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:26px 0 6px;"><tr><td bgcolor="'+AC.acc+'" style="border-radius:6px;"><a href="'+href+'" style="display:inline-block;padding:13px 26px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;color:'+AC.txt+';text-decoration:none;">'+ctaLabel+'</a></td></tr></table>'+
+   '<p style="margin:8px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#999999;">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur&nbsp;:<br><a href="'+href+'" style="color:'+AC.accD+';word-break:break-all;">'+href+'</a></p>'+
    '</td></tr>'+
    '<tr><td style="padding:16px 32px;background:#F9F7F2;border-top:1px solid #E0DCD0;"><p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#999999;">Envoi automatique — merci de ne pas répondre à cet e-mail.</p></td></tr>'+
    '</table></td></tr></table>';
@@ -1187,7 +1189,7 @@ async function doSendRH(){
       unspin();
       var body2=mailBodyHtmlCP('Congés & absences',decOk?'Demande acceptée':'Demande refusée',
         'La demande de congés/absence a été <strong>'+(decOk?'acceptée':'refusée')+'</strong> par le responsable (collaborateur + directeur). Merci de télécharger le PDF définitif.',
-        d,rhUrl,'Télécharger le PDF →',extraRowMail);
+        d,rhUrl,'Télécharger le PDF →',extraRowMail,decOk?null:REFUS_ACCENT);
       openEmailModal('Envoyer aux RH',prefillRH,function(emails){
         spin('Envoi en cours...');
         sendMailSilent({to:emails[0],cc:emails.slice(1),subject:subj,body:body2})
@@ -1226,7 +1228,7 @@ async function doSendRH(){
       }
       var bodyPC=mailBodyHtmlCP('Congés & absences',decOk?'Demande acceptée':'Demande refusée',
         'La demande de congés/absence a été <strong>'+(decOk?'acceptée':'refusée')+'</strong> par le responsable (collaborateur + directeur). Le PDF définitif est joint ; vous pouvez aussi consulter la demande via ce lien.',
-        d,rhUrl,'Consulter la demande →',extraRowMail);
+        d,rhUrl,'Consulter la demande →',extraRowMail,decOk?null:REFUS_ACCENT);
       openEmailModal('Envoyer aux RH',prefillRH,function(emails){
         spin('Envoi en cours...');
         sendMailSilent({to:emails[0],cc:emails.slice(1),subject:subj,body:bodyPC})
