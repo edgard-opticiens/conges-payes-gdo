@@ -361,6 +361,19 @@ function logToSheet(payload){
   fetch(N8N_LOG,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
     .catch(function(){});
 }
+var N8N_VERIF_DOUBLON='https://edgard-opticiens.app.n8n.cloud/webhook/conges-verifier-doublon';
+/* Verifie si une demande avec exactement les memes dates existe deja pour ce collaborateur.
+   cb(true) = doublon detecte (blocage), cb(false) = pas de doublon (ou erreur reseau -> on laisse passer). */
+function checkDoublon(data,cb){
+  var dd=(data.cp&&data.cp.on&&data.cp.d)||(data.abs&&data.abs.on&&data.abs.d)||'';
+  var df=(data.cp&&data.cp.on&&data.cp.f)||(data.abs&&data.abs.on&&data.abs.f)||'';
+  if(!dd||!df){cb(false);return;}
+  fetch(N8N_VERIF_DOUBLON,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({societe:data.societe,nom:data.nom,prenom:data.prenom,date_debut:dd,date_fin:df})})
+    .then(function(r){return r.json();})
+    .then(function(res){cb(!!(res&&res.doublon));})
+    .catch(function(){cb(false);});
+}
 function logMotif(d){if(!(d.abs&&d.abs.on))return'';var SM={evt:'Evt Fam',dec:'Décès',rev:'Congé révision',css:'CSS',anr:'ANR',rtt:'RTT'};return SM[d.abs.m]||(d.abs.mL||'').replace(/^[^\w]*/,'').trim();}
 function makeId(d){
   // IMPORTANT : on ne retient la date CP que si la section CP est reellement cochee (.on),
@@ -464,6 +477,20 @@ function confirmEmails(){
 }
 function sendMailSilent(payload){
   return fetch(N8N_MAIL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+}
+/* Envoie un email "vers RH" en garantissant que RH le recoit meme si une adresse
+   personnelle/externe a ete ajoutee (manuellement, via la fenetre d'envoi) a la liste.
+   Le garde-fou de securite cote n8n bloque tout l'envoi des qu'une adresse externe est
+   melangee a des adresses internes en cc — on separe donc : les adresses @groupe-edgard.com
+   partent ensemble (to+cc), toute adresse externe part en plus, seule, dans son propre envoi. */
+function isInternalAdr(a){return /^[^\s@]+@groupe-edgard\.com$/i.test(String(a||'').trim());}
+function sendToRH(emails,subject,body){
+  var list=(emails||[]).map(function(e){return String(e||'').trim();}).filter(Boolean);
+  var internal=list.filter(isInternalAdr);
+  var external=list.filter(function(e){return !isInternalAdr(e);});
+  var p=internal.length?sendMailSilent({to:internal[0],cc:internal.slice(1),subject:subject,body:body}):Promise.resolve();
+  external.forEach(function(e){sendMailSilent({to:e,subject:subject,body:body}).catch(function(){});});
+  return p;
 }
 window.addEventListener('click',function(e){if(e.target.classList.contains('modal'))e.target.classList.remove('show')})
 
@@ -870,13 +897,21 @@ function doSendDir(){
   if(!gv('collabEmail').trim()||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(gv('collabEmail').trim())){toast('Saisissez votre email personnel (valide)');return}
   if(!isSec('CP')&&!isSec('ABS')){toast('Cochez au moins un type de demande');return}
   if(isSec('ABS')&&(!gv('absH').trim()||!gv('absJ').trim())){toast('Saisissez les heures et le nombre de jours d\'absence');return}
+  if(ge('chkAR')&&ge('chkAR').checked&&!gv('arDate').trim()){toast('Indiquez la date de la demande initiale pour l\'annule et remplace');return}
   if(isEmpty('cvC')){toast('Apposez votre signature');return}
-  spin('Generation du lien...');
-  var sh=ge('shield');if(sh)sh.style.display='none';
-  var data=collect();_md=data;
-  if(sh)sh.style.display='';
-  var cleaned=encodeHash(data);
-  creerLienCourt('d',cleaned,function(dirUrl){unspin();_ouvrirMailDir(data,dirUrl);});
+  spin('Verification...');
+  var sh1=ge('shield');if(sh1)sh1.style.display='none';
+  var dataChk=collect();
+  if(sh1)sh1.style.display='';
+  checkDoublon(dataChk,function(doublon){
+    if(doublon){unspin();toast('Une demande existe déjà avec exactement les mêmes dates. Vérifiez vos demandes en cours.');return;}
+    spin('Generation du lien...');
+    var sh=ge('shield');if(sh)sh.style.display='none';
+    var data=collect();_md=data;
+    if(sh)sh.style.display='';
+    var cleaned=encodeHash(data);
+    creerLienCourt('d',cleaned,function(dirUrl){unspin();_ouvrirMailDir(data,dirUrl);});
+  });
 }
 var FORMIO_OPTIONS=[
   {prenom:'Romain',nom:'GUITTARD',email:'r.guittard@groupe-edgard.com'},
@@ -1198,7 +1233,7 @@ async function doSendRH(){
         d,rhUrl,'Télécharger le PDF →',extraRowMail,decOk?null:REFUS_ACCENT);
       openEmailModal('Envoyer aux RH',prefillRH,function(emails){
         spin('Envoi en cours...');
-        sendMailSilent({to:emails[0],cc:emails.slice(1),subject:subj,body:body2})
+        sendToRH(emails,subj,body2)
           .then(function(){unspin();toast('Demande envoyee aux RH');})
           .catch(function(){unspin();toast('Erreur d\'envoi, reessayez');});
         if(d.email){
@@ -1244,7 +1279,7 @@ async function doSendRH(){
         d,rhUrl,'Consulter la demande →',extraRowMail,decOk?null:REFUS_ACCENT);
       openEmailModal('Envoyer aux RH',prefillRH,function(emails){
         spin('Envoi en cours...');
-        sendMailSilent({to:emails[0],cc:emails.slice(1),subject:subj,body:bodyPC})
+        sendToRH(emails,subj,bodyPC)
           .then(function(){unspin();toast('Demande envoyee aux RH');})
           .catch(function(){unspin();toast('Erreur d\'envoi, reessayez');});
         if(d.email){
