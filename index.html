@@ -44,6 +44,7 @@ body{font-family:'DM Sans',sans-serif;background:#EEEBE3;min-height:100vh;paddin
 .lbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--g);margin-bottom:3px;display:block}
 .inp{border:none;border-bottom:1.5px solid var(--bd);padding:5px 2px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--dk);background:transparent;outline:none;transition:border-color .2s;width:100%}
 .inp:focus{border-bottom-color:var(--g)}
+.inp.err{border-bottom-color:#D9534F}.inp.err:focus{border-bottom-color:#D9534F}
 .sel{width:100%;border:none;border-bottom:1.5px solid var(--bd);padding:6px 22px 6px 2px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--dk);background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23C9A84C' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 2px center;outline:none;cursor:pointer;appearance:none}
 .r2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px;padding-bottom:12px;border-bottom:1.5px solid var(--gp)}
 .fg{display:flex;flex-direction:column}
@@ -103,6 +104,7 @@ textarea.inp{border:1.5px solid var(--bd);border-radius:4px;padding:5px 8px;resi
 @keyframes rot{to{transform:rotate(360deg)}}
 #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--dk);color:#fff;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:500;transition:transform .3s;z-index:9999;pointer-events:none;max-width:400px;text-align:center}
 #toast.show{transform:translateX(-50%) translateY(0)}
+@media(max-width:600px){.r2,.dg,.sigs{grid-template-columns:1fr}}
 @media print{
 *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
 body{background:#fff;padding:0;}
@@ -307,6 +309,19 @@ function ge(i){return document.getElementById(i)}
 function fixNom(v){return String(v||'').replace(/\s+/g,' ').trim().toLocaleUpperCase('fr')}
 function fixPrenom(v){return String(v||'').replace(/\s+/g,' ').trim().toLocaleLowerCase('fr').replace(/(^|[\s\-'’])(\S)/g,function(m,a,b){return a+b.toLocaleUpperCase('fr')})}
 function gv(i){var e=ge(i);var v=e?e.value:'';if(i==='nom')return fixNom(v);if(i==='prenom')return fixPrenom(v);return v}
+function liveReq(id){
+  var el=ge(id);if(!el)return;var touched=false;
+  function mark(){if(!touched)return;el.classList.toggle('err',!gv(id).trim());}
+  el.addEventListener('blur',function(){touched=true;mark();});
+  el.addEventListener('input',mark);
+}
+function liveEmail(id){
+  var el=ge(id);if(!el)return;var touched=false;
+  function mark(){if(!touched)return;var v=gv(id).trim();el.classList.toggle('err',!v||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v));}
+  el.addEventListener('blur',function(){touched=true;mark();});
+  el.addEventListener('input',mark);
+}
+liveReq('nom');liveReq('prenom');liveEmail('collabEmail');
 document.addEventListener('DOMContentLoaded',function(){
   [['nom',function(v){return String(v).toLocaleUpperCase('fr')}],['prenom',function(v){return String(v).toLocaleLowerCase('fr').replace(/(^|[\s\-'’])(\S)/g,function(m,a,b){return a+b.toLocaleUpperCase('fr')})}]].forEach(function(p){
     var el=ge(p[0]);if(!el)return;
