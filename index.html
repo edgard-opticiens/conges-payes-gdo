@@ -162,6 +162,19 @@ body{background:#fff;padding:0;}
   </div>
 </div>
 
+<div class="modal" id="mdlChevauche">
+  <div class="mbox">
+    <div class="mttl">⚠️ Dates qui se chevauchent</div>
+    <div style="font-size:12.5px;line-height:1.6;margin-bottom:10px;color:#555">Vous avez déjà une ou plusieurs demandes sur des dates qui chevauchent celles que vous venez de saisir :</div>
+    <div id="chevaucheList" style="margin-bottom:12px"></div>
+    <div style="font-size:11.5px;color:#8a9a8f;margin-bottom:14px">Vous pouvez envoyer quand même si c'est volontaire (correction, demi-journée, etc.), ou modifier vos dates.</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn bol" style="font-size:12px;padding:8px 16px" onclick="closeM('mdlChevauche')">Modifier mes dates</button>
+      <button class="btn bgr" style="font-size:12px;padding:8px 16px" onclick="confirmChevauche()">Envoyer quand même</button>
+    </div>
+  </div>
+</div>
+
 <div class="banner bc" id="banner">
   <span class="badge" id="badgeTxt">Collaborateur</span>
   <span id="bannerMsg">Remplissez votre demande, signez, puis cliquez sur <strong>Envoyer au directeur</strong></span>
@@ -377,17 +390,35 @@ function logToSheet(payload){
     .catch(function(){});
 }
 var N8N_VERIF_DOUBLON='https://edgard-opticiens.app.n8n.cloud/webhook/conges-verifier-doublon';
-/* Verifie si une demande avec exactement les memes dates existe deja pour ce collaborateur.
-   cb(true) = doublon detecte (blocage), cb(false) = pas de doublon (ou erreur reseau -> on laisse passer). */
+/* Verifie si une demande sur des dates identiques ou qui se chevauchent existe deja pour ce
+   collaborateur. cb(res) avec res.doublon (dates exactement identiques, blocage), res.chevauchement
+   (chevauchement partiel, avertissement) et res.conflits (liste des demandes existantes concernees). */
 function checkDoublon(data,cb){
+  var vide={ok:true,doublon:false,chevauchement:false,conflits:[]};
   var dd=(data.cp&&data.cp.on&&data.cp.d)||(data.abs&&data.abs.on&&data.abs.d)||'';
   var df=(data.cp&&data.cp.on&&data.cp.f)||(data.abs&&data.abs.on&&data.abs.f)||'';
-  if(!dd||!df){cb(false);return;}
+  if(!dd||!df){cb(vide);return;}
+  var exclu=(data.annuleRemplace&&data.annuleRemplace.dateInit)?data.annuleRemplace.dateInit:'';
   fetch(N8N_VERIF_DOUBLON,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({societe:data.societe,nom:data.nom,prenom:data.prenom,date_debut:dd,date_fin:df})})
+    body:JSON.stringify({societe:data.societe,nom:data.nom,prenom:data.prenom,date_debut:dd,date_fin:df,exclure_date_debut:exclu})})
     .then(function(r){return r.json();})
-    .then(function(res){cb(!!(res&&res.doublon));})
-    .catch(function(){cb(false);});
+    .then(function(res){cb(res&&res.ok?res:vide);})
+    .catch(function(){cb(vide);});
+}
+var _chevaucheCb=null;
+function showChevaucheModal(conflits,onConfirm){
+  var list=ge('chevaucheList');
+  list.innerHTML=(conflits||[]).map(function(c){
+    var lbl=c.type?(' — '+c.type):'';
+    return '<div style="padding:8px 10px;background:var(--lt);border-radius:6px;margin-bottom:6px;font-size:12.5px"><strong>Du '+fD(c.date_debut)+' au '+fD(c.date_fin)+'</strong>'+lbl+'</div>';
+  }).join('');
+  _chevaucheCb=onConfirm;
+  ge('mdlChevauche').classList.add('show');
+}
+function confirmChevauche(){
+  closeM('mdlChevauche');
+  var cb=_chevaucheCb;_chevaucheCb=null;
+  if(cb)cb();
 }
 function logMotif(d){if(!(d.abs&&d.abs.on))return'';var SM={evt:'Evt Fam',dec:'Décès',rev:'Congé révision',css:'CSS',anr:'ANR',rtt:'RTT'};return SM[d.abs.m]||(d.abs.mL||'').replace(/^[^\w]*/,'').trim();}
 function makeId(d){
@@ -918,14 +949,22 @@ function doSendDir(){
   var sh1=ge('shield');if(sh1)sh1.style.display='none';
   var dataChk=collect();
   if(sh1)sh1.style.display='';
-  checkDoublon(dataChk,function(doublon){
-    if(doublon){unspin();toast('Une demande existe déjà avec exactement les mêmes dates. Vérifiez vos demandes en cours.');return;}
-    spin('Generation du lien...');
-    var sh=ge('shield');if(sh)sh.style.display='none';
-    var data=collect();_md=data;
-    if(sh)sh.style.display='';
-    var cleaned=encodeHash(data);
-    creerLienCourt('d',cleaned,function(dirUrl){unspin();_ouvrirMailDir(data,dirUrl);});
+  checkDoublon(dataChk,function(res){
+    if(res.doublon){unspin();toast('Une demande existe déjà avec exactement les mêmes dates. Vérifiez vos demandes en cours.');return;}
+    function _genererEtEnvoyerDir(){
+      spin('Generation du lien...');
+      var sh=ge('shield');if(sh)sh.style.display='none';
+      var data=collect();_md=data;
+      if(sh)sh.style.display='';
+      var cleaned=encodeHash(data);
+      creerLienCourt('d',cleaned,function(dirUrl){unspin();_ouvrirMailDir(data,dirUrl);});
+    }
+    if(res.chevauchement&&res.conflits&&res.conflits.length){
+      unspin();
+      showChevaucheModal(res.conflits,_genererEtEnvoyerDir);
+    } else {
+      _genererEtEnvoyerDir();
+    }
   });
 }
 var FORMIO_OPTIONS=[
