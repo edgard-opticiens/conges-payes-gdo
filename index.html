@@ -470,7 +470,7 @@ function logRHValide(){
     date_debut:(_rh.cp&&_rh.cp.on&&_rh.cp.d)||(_rh.abs&&_rh.abs.on&&_rh.abs.d)||'',
     date_fin:(_rh.cp&&_rh.cp.on&&_rh.cp.f)||(_rh.abs&&_rh.abs.on&&_rh.abs.f)||'',
     nb_jours:(_rh.cp&&_rh.cp.on&&_rh.cp.n)||(_rh.abs&&_rh.abs.on&&_rh.abs.j)||'',
-    etape:'termine',statut:'valide',
+    etape:'termine',statut:(_rh.dec==='non'?'refuse':'valide'),
     // On conserve le lien de cette page (celle que RH vient d'ouvrir pour valider/
     // télécharger) au lieu de l'effacer, pour pouvoir reconsulter la demande
     // archivée plus tard depuis le tableau de bord RH.
