@@ -1208,7 +1208,19 @@ function flagSignatureR(msg){
   }
   toast(msg,6000);
 }
+var _rhLock=false;
+function lockRHSend(){
+  _rhLock=true;
+  var b=ge('btnRH');
+  if(b){b.disabled=true;b.style.opacity='.55';b.style.cursor='not-allowed';b.textContent='✓ Envoyée aux RH';b.onclick=null;}
+}
+function unlockRHSend(){
+  _rhLock=false;
+  var b=ge('btnRH');
+  if(b){b.disabled=false;b.style.opacity='';b.style.cursor='';b.textContent='Envoyer aux RH';b.onclick=doSendRH;}
+}
 async function doSendRH(){
+  if(_rhLock){toast('Demande déjà envoyée aux RH');return;}
   var d=_md||{nom:gv('nom'),prenom:gv('prenom'),societe:gv('societe')};
   var dn=gv('dirNom'),dp=gv('dirPrenom');
   if(!dn||!dn.trim()){flagField('dirNom','⚠️ Indiquez le NOM du responsable avant d\'envoyer aux RH');return;}
@@ -1247,10 +1259,11 @@ async function doSendRH(){
         'La demande de congés/absence a été <strong>'+(decOk?'acceptée':'refusée')+'</strong> par le responsable (collaborateur + directeur). Merci de télécharger le PDF définitif.',
         d,rhUrl,'Télécharger le PDF →',extraRowMail,decOk?null:REFUS_ACCENT);
       openEmailModal('Envoyer aux RH',prefillRH,function(emails){
+        lockRHSend();
         spin('Envoi en cours...');
         sendToRH(emails,subj,body2)
           .then(function(){unspin();toast('Demande envoyee aux RH');})
-          .catch(function(){unspin();toast('Erreur d\'envoi, reessayez');});
+          .catch(function(){unspin();unlockRHSend();toast('Erreur d\'envoi, reessayez');});
         if(d.email){
           var subjCollab=(decOk?'Votre demande de congés a été acceptée':'Votre demande de congés a été refusée')+' — '+hdr;
           var bodyCollab=mailBodyHtmlCP('Congés & absences',decOk?'Votre demande a été acceptée':'Votre demande a été refusée',
@@ -1293,10 +1306,11 @@ async function doSendRH(){
         'La demande de congés/absence a été <strong>'+(decOk?'acceptée':'refusée')+'</strong> par le responsable (collaborateur + directeur). Le PDF définitif est joint ; vous pouvez aussi consulter la demande via ce lien.',
         d,rhUrl,'Consulter la demande →',extraRowMail,decOk?null:REFUS_ACCENT);
       openEmailModal('Envoyer aux RH',prefillRH,function(emails){
+        lockRHSend();
         spin('Envoi en cours...');
         sendToRH(emails,subj,bodyPC)
           .then(function(){unspin();toast('Demande envoyee aux RH');})
-          .catch(function(){unspin();toast('Erreur d\'envoi, reessayez');});
+          .catch(function(){unspin();unlockRHSend();toast('Erreur d\'envoi, reessayez');});
         if(d.email){
           var subjCollab=(decOk?'Votre demande de congés a été acceptée':'Votre demande de congés a été refusée')+' — '+hdr;
           var bodyCollab=mailBodyHtmlCP('Congés & absences',decOk?'Votre demande a été acceptée':'Votre demande a été refusée',
